@@ -92,6 +92,7 @@ export class EventCollector {
   }
 
   ingestTranscript(chunk) {
+    let model = null
     for (const line of chunk.split('\n')) {
       if (!line.trim()) continue
       let entry
@@ -102,6 +103,7 @@ export class EventCollector {
       }
       if (entry.type !== 'assistant') continue
       const msg = entry.message || {}
+      if (msg.model && !model) model = msg.model
       const usage = msg.usage
       if (!usage || typeof usage !== 'object') continue
       const cost = typeof msg.cost === 'number' ? msg.cost : (msg.cost && msg.cost.total)
@@ -110,9 +112,11 @@ export class EventCollector {
         : []
       this.addUsage({ costUsd: cost, usage, perModel })
     }
+    return model
   }
 
   pollTranscripts() {
+    const discovered = []
     for (const [path, info] of this.transcripts) {
       let data
       try {
@@ -126,8 +130,25 @@ export class EventCollector {
       const nl = chunk.lastIndexOf('\n')
       if (nl < 0) continue
       info.offset = offset + nl + 1
-      this.ingestTranscript(chunk.slice(0, nl))
+      const model = this.ingestTranscript(chunk.slice(0, nl))
+      if (!model) continue
+      for (const agent of this.agents.values()) {
+        if (agent.transcriptPath === path && agent.model !== model) {
+          agent.model = model
+          const record = {
+            seq: ++this.seq,
+            ts: Date.now(),
+            event: 'AgentModel',
+            agentId: agent.id,
+            agentType: agent.type,
+            model
+          }
+          this.push(record)
+          discovered.push(record)
+        }
+      }
     }
+    return discovered
   }
 
   usageSummary() {
@@ -234,6 +255,9 @@ export class EventCollector {
         const agent = this.agentFor(payload)
         agent.status = 'running'
         agent.startedAt = ts
+        const path = agent.transcriptPath || this.transcriptPathFor(agent.id)
+        if (path && !agent.transcriptPath) agent.transcriptPath = path
+        this.trackTranscript(path, payload.session_id)
         break
       }
       case 'SubagentStop': {

@@ -469,7 +469,9 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       onRecord: (record) => broadcastTo(ctx, 'event', record)
     })
     const tick = setInterval(() => {
-      collector.pollTranscripts()
+      for (const record of collector.pollTranscripts()) {
+        broadcastTo(ctx, 'event', record)
+      }
       broadcastTo(ctx, 'usage', collector.usageSummary())
     }, 5000)
     tick.unref()

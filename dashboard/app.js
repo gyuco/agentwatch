@@ -392,6 +392,16 @@ function removeChar(id) {
   c.slot = null
 }
 
+function refreshDeskLabel(c) {
+  const desk = c.slot ? document.querySelector(c.slot.desk) : null
+  const dname = desk && desk.querySelector('.dname')
+  if (!dname) return
+  const st = dname.querySelector('.st')
+  const m = modelFor(c.rec)
+  dname.title = m
+  dname.innerHTML = `${esc(m)}<span class="st">${st ? st.textContent : ' · idle'}</span>`
+}
+
 function sitChar(c, instant) {
   const s = c.slot
   const desk = document.querySelector(s.desk)
@@ -404,9 +414,7 @@ function sitChar(c, instant) {
     c.el.classList.add('pop')
     setTimeout(() => { c.el.style.transition = '' }, 60)
   }
-  const dname = desk.querySelector('.dname')
-  dname.title = modelFor(c.rec)
-  dname.innerHTML = `${esc(modelFor(c.rec))}<span class="st"> · idle</span>`
+  refreshDeskLabel(c)
   setExpr(c, 'idle')
 }
 
@@ -630,6 +638,9 @@ function officeReact(ev) {
     case 'ForceClear':
       if (c.slot) walkOut(c)
       break
+    case 'AgentModel':
+      refreshDeskLabel(c)
+      break
   }
 }
 
@@ -746,6 +757,7 @@ function feedEntry(ev) {
     case 'SessionStart': msg = `session started`; break
     case 'SessionEnd': msg = `session ended`; break
     case 'ForceClear': msg = `🧹 stuck session force-cleared`; break
+    case 'AgentModel': return null
     default: msg = `${esc(ev.event)}`; break
   }
   return { msg, cls, ev }
@@ -756,7 +768,9 @@ function renderFeed() {
   const q = state.search.toLowerCase()
   const items = state.events
     .map(feedEntry)
-    .filter(({ cls, ev }) => {
+    .filter((entry) => {
+      if (!entry) return false
+      const { cls, ev } = entry
       if (state.filter === 'main' && ev.agentType !== 'main') return false
       if (state.filter === 'sub' && ev.agentType === 'main') return false
       if (state.filter === 'skill' && ev.toolName !== SKILL_TOOL && ev.event !== 'UserPromptExpansion') return false
@@ -912,6 +926,7 @@ function applyEvent(ev) {
   if (ev.event === 'SubagentStop') { rec.status = 'done'; rec.endedAt = ev.ts; rec.lastMessage = ev.lastMessage || '' }
   if (ev.event === 'ForceClear') { rec.status = 'ended'; rec.endedAt = ev.ts }
   if (ev.event === 'UserPromptSubmit') { rec.promptCount++; rec.lastPrompt = ev.prompt || '' }
+  if (ev.event === 'AgentModel') { rec.model = ev.model }
   if (ev.event === 'Stop') rec.turns++
   if (ev.event === 'PreToolUse') {
     rec.lastTool = { name: ev.toolName, summary: ev.summary, status: 'running', at: ev.ts }
