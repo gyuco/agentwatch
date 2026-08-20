@@ -74,6 +74,78 @@ function readJson(req) {
   })
 }
 
+const MAX_TRANSCRIPT_BYTES = 32 * 1024 * 1024
+const MAX_TRANSCRIPT_MESSAGES = 500
+
+const cap = (s, n) => {
+  s = String(s ?? '')
+  return s.length > n ? s.slice(0, n) + '…' : s
+}
+
+function transcriptBlocks(content, toolById) {
+  const blocks = []
+  if (typeof content === 'string') {
+    const t = content.trim()
+    if (t) blocks.push({ type: 'text', text: cap(t, 10000) })
+    return blocks
+  }
+  for (const b of Array.isArray(content) ? content : []) {
+    if (!b || typeof b !== 'object') continue
+    if (b.type === 'text' && b.text) blocks.push({ type: 'text', text: cap(b.text, 10000) })
+    else if (b.type === 'thinking' && b.thinking) blocks.push({ type: 'thinking', text: cap(b.thinking, 400) })
+    else if (b.type === 'tool_use' && b.name) {
+      blocks.push({ type: 'tool_use', id: b.id, name: b.name, input: cap(JSON.stringify(b.input ?? {}), 2000) })
+      if (b.id) toolById.set(b.id, b.name)
+    } else if (b.type === 'tool_result') {
+      const raw = typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
+      blocks.push({ type: 'tool_result', toolName: toolById.get(b.tool_use_id) || null, content: cap(raw, 2000) })
+    }
+  }
+  return blocks
+}
+
+async function readTranscript(path) {
+  try {
+    const st = await stat(path)
+    if (st.size > MAX_TRANSCRIPT_BYTES) return { found: false, error: 'transcript too large' }
+  } catch (err) {
+    return { found: false, error: err && err.code === 'ENOENT' ? 'no transcript recorded for this agent' : 'unreadable transcript' }
+  }
+  let data
+  try {
+    data = await readFile(path, 'utf8')
+  } catch {
+    return { found: false, error: 'unreadable transcript' }
+  }
+  const messages = []
+  const toolById = new Map()
+  for (const line of data.split('\n')) {
+    if (!line.trim()) continue
+    let entry
+    try {
+      entry = JSON.parse(line)
+    } catch {
+      continue
+    }
+    if (!entry || typeof entry !== 'object' || entry.isMeta === true) continue
+    const type = entry.type
+    const msg = entry.message || {}
+    if (type === 'user') {
+      const blocks = transcriptBlocks(msg.content, toolById)
+      const pure = blocks.filter((b) => b.type !== 'tool_result')
+      if (pure.length) messages.push({ role: 'user', blocks: pure })
+      for (const r of blocks.filter((b) => b.type === 'tool_result')) {
+        messages.push({ role: 'tool_result', toolName: r.toolName, content: r.content })
+      }
+    } else if (type === 'assistant') {
+      const blocks = transcriptBlocks(msg.content, toolById)
+      if (blocks.length) messages.push({ role: 'assistant', blocks })
+    }
+  }
+  if (messages.length > MAX_TRANSCRIPT_MESSAGES) messages.splice(0, messages.length - MAX_TRANSCRIPT_MESSAGES)
+  return { found: true, path, messages }
+}
+
 const DOC_SKIP = new Set(['node_modules', '.git', '.agentwatch', 'dist', 'build', '.next'])
 const MAX_DOC_BYTES = 1024 * 1024
 const FILE_SKIP = new Set(['node_modules', '.git', '.agentwatch', '.claude', 'dist', 'build', '.next', 'coverage', 'vendor', 'target', 'out'])
@@ -608,6 +680,30 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
           architecture: { found: architecture.found, path: architecture.path || null }
         }))
         .catch((err) => json(res, 500, { error: String((err && err.message) || err) }))
+      return
+    }
+
+    if (rest === '/api/transcript' && req.method === 'GET') {
+      const agentId = String(url.searchParams.get('agent') || '')
+      const agent = agentId && ctx.collector.agents.get(agentId)
+      if (!agent) {
+        json(res, 404, { found: false, error: 'unknown agent' })
+        return
+      }
+      const path = ctx.collector.transcriptPathFor(agentId)
+      if (!path) {
+        const pending = agent.status === 'running' || agent.status === 'started'
+        json(res, 200, {
+          found: false,
+          error: pending
+            ? 'transcript not available yet — it appears once the agent starts writing its first message'
+            : 'no transcript tracked for this agent'
+        })
+        return
+      }
+      readTranscript(path)
+        .then((data) => json(res, 200, data))
+        .catch((err) => json(res, 500, { found: false, error: String((err && err.message) || err) }))
       return
     }
 

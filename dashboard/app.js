@@ -84,6 +84,16 @@ const hashOf = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + c
 const office = { chars: new Map(), order: [] }
 
 const agentLabel = (rec) => rec.isMain ? 'main agent' : (rec.type || rec.id)
+const modelFor = (rec) => {
+  if (rec.model) return rec.model
+  if (!rec.isMain && rec.type) {
+    const cat = state.catalog.agents.find((a) => a.id === rec.type)
+    if (cat && cat.model) return cat.model
+  }
+  const main = state.byId.get('main')
+  if (main && main.model) return main.model
+  return '…'
+}
 
 const PRESENT_MS = 90000
 const agentPresent = (a) => {
@@ -344,9 +354,7 @@ function ensureChar(rec) {
   el.innerHTML = charHTML(rec, hue)
   el.addEventListener('click', () => {
     if (state.seats.has(rec.id)) { toggleConsole(rec.id); return }
-    if (state.filterAgent === rec.id) { state.filterAgent = null } else { state.filterAgent = rec.id }
-    renderFeed()
-    renderOfficeFocus()
+    openTranscript(rec.id)
   })
   $('#chars').appendChild(el)
   c = { el, rec, slot: null, expr: 'idle', typing: false, bubbles: [] }
@@ -397,7 +405,8 @@ function sitChar(c, instant) {
     setTimeout(() => { c.el.style.transition = '' }, 60)
   }
   const dname = desk.querySelector('.dname')
-  dname.innerHTML = `${esc(c.rec.isMain ? 'main agent' : (c.rec.type || c.rec.id))}<span class="st"> · idle</span>`
+  dname.title = modelFor(c.rec)
+  dname.innerHTML = `${esc(modelFor(c.rec))}<span class="st"> · idle</span>`
   setExpr(c, 'idle')
 }
 
@@ -1310,6 +1319,70 @@ $('#docModal .doc-tabs').addEventListener('click', (e) => {
   docTab = b.dataset.tab
   renderDoc()
 })
+let transcriptAgent = null
+let transcriptTimer = null
+
+function renderTranscriptBlock(b) {
+  if (b.type === 'text') return `<div class="tr-block">${esc(b.text)}</div>`
+  if (b.type === 'thinking') return `<div class="tr-block thinking">${esc(b.text)}</div>`
+  if (b.type === 'tool_use') return `<div class="tr-block tr-tool"><span class="tr-tool-name">${esc(b.name)}</span> ${esc(b.input)}</div>`
+  return ''
+}
+
+function renderTranscriptMessage(m) {
+  if (m.role === 'tool_result') {
+    return `<div class="tr-msg role-tool_result"><div class="tr-role">${esc(m.toolName || 'tool')} result</div><div class="tr-block tr-tool">${esc(m.content)}</div></div>`
+  }
+  const blocks = (m.blocks || []).map(renderTranscriptBlock).join('')
+  return `<div class="tr-msg role-${esc(m.role)}"><div class="tr-role">${esc(m.role)}</div>${blocks}</div>`
+}
+
+function loadTranscript(agentId) {
+  fetch(api('/api/transcript?agent=' + encodeURIComponent(agentId)))
+    .then((r) => r.json())
+    .then((d) => {
+      if (transcriptAgent !== agentId) return
+      if (!d.found) {
+        $('#transcriptBody').innerHTML = `<div class="empty">${esc(d.error || 'no transcript')}</div>`
+        return
+      }
+      const body = $('#transcriptBody')
+      const wasAtBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 24
+      body.innerHTML = d.messages.length
+        ? d.messages.map(renderTranscriptMessage).join('')
+        : '<div class="empty">no messages yet…</div>'
+      if (wasAtBottom) body.scrollTop = body.scrollHeight
+    })
+    .catch((e) => {
+      if (transcriptAgent !== agentId) return
+      $('#transcriptBody').innerHTML = `<div class="doc-missing">error: ${esc(String(e && e.message || e))}</div>`
+    })
+}
+
+function openTranscript(agentId) {
+  const rec = state.byId.get(agentId)
+  transcriptAgent = agentId
+  $('#transcriptTitle').textContent = rec ? agentLabel(rec) + ' · ' + agentId : agentId
+  $('#transcriptModal').classList.add('open')
+  $('#transcriptBody').innerHTML = '<div class="empty">loading…</div>'
+  loadTranscript(agentId)
+  clearInterval(transcriptTimer)
+  transcriptTimer = setInterval(() => {
+    const live = state.byId.get(transcriptAgent)
+    if (live && live.status !== 'running' && live.status !== 'started') return
+    loadTranscript(transcriptAgent)
+  }, 3000)
+}
+
+function closeTranscript() {
+  $('#transcriptModal').classList.remove('open')
+  clearInterval(transcriptTimer)
+  transcriptTimer = null
+  transcriptAgent = null
+}
+$('#transcriptClose').addEventListener('click', closeTranscript)
+$('#transcriptModal .backdrop').addEventListener('click', closeTranscript)
+
 const cabinetEl = document.querySelector('.cabinet')
 const cabinetOpen = (open) => cabinetEl.classList.toggle('open', open)
 cabinetEl.querySelector('.d1').addEventListener('click', (e) => {

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 export const MAIN_ID = 'main'
 
@@ -192,6 +193,11 @@ export class EventCollector {
     const seq = ++this.seq
     this.sessions.set(payload.session_id || '?', true)
 
+    if (payload.transcript_path) {
+      const main = this.agentFor({ ...payload, agent_id: MAIN_ID, agent_type: 'main' })
+      if (!main.transcriptPath) main.transcriptPath = payload.transcript_path
+    }
+
     switch (event) {
       case 'SessionStart': {
         const main = this.agentFor({ ...payload, agent_type: 'main' })
@@ -354,6 +360,18 @@ export class EventCollector {
 
   runningAgents() {
     return [...this.agents.values()].filter((a) => a.status === 'running' || a.status === 'started')
+  }
+
+  transcriptPathFor(agentId) {
+    const agent = this.agents.get(agentId)
+    if (!agent) return null
+    if (agent.transcriptPath) return agent.transcriptPath
+    if (agent.isMain) return null
+    const main = this.agents.get(MAIN_ID)
+    const mainPath = main && main.transcriptPath
+    if (!mainPath || typeof mainPath !== 'string') return null
+    const dir = mainPath.replace(/\.jsonl$/, '')
+    return join(dir, 'subagents', `agent-${agentId}.jsonl`)
   }
 
   snapshot() {
