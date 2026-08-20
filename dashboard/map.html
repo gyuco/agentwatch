@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentwatch · offices</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="map">
+<header>
+  <div class="brand"><span class="logo"></span>agentwatch <span class="tag">hall</span></div>
+  <span class="dot" id="conn"></span>
+  <div class="meta" id="meta">…</div>
+  <div class="spacer"></div>
+  <button id="reload" title="reload the map">↻</button>
+</header>
+<main class="map-main">
+  <div class="hallwrap">
+    <div id="hall">
+      <div class="ceiling"></div>
+      <div class="wall"></div>
+      <div class="floor"></div>
+      <div class="molding"></div>
+      <div class="chandelier">
+        <div class="ch-glow"></div>
+        <div class="ch-rod"></div>
+        <div class="ch-arm a1"></div>
+        <div class="ch-arm a2"></div>
+        <div class="ch-flame f1"></div>
+        <div class="ch-flame f2"></div>
+        <div class="ch-flame f3"></div>
+      </div>
+      <div class="hboard"><div class="hb-title">OFFICES</div><div class="hb-body" id="hbBody">…</div></div>
+      <div class="sculpt scl1">
+        <div class="ped"></div>
+        <div class="marble">
+          <div class="m-head">
+            <div class="m-hair"></div>
+            <div class="m-eye le"></div>
+            <div class="m-eye re"></div>
+            <div class="m-nose"></div>
+            <div class="m-mouth"></div>
+          </div>
+          <div class="m-neck"></div>
+          <div class="m-base"></div>
+        </div>
+      </div>
+      <div class="sculpt scl2">
+        <div class="ped"></div>
+        <div class="marble">
+          <div class="m-head">
+            <div class="m-hair"></div>
+            <div class="m-eye le"></div>
+            <div class="m-eye re"></div>
+            <div class="m-nose"></div>
+            <div class="m-mouth"></div>
+          </div>
+          <div class="m-neck"></div>
+          <div class="m-base"></div>
+        </div>
+      </div>
+      <div class="plant"><div class="stem"></div><div class="leaf l1"></div><div class="leaf l2"></div><div class="leaf l3"></div><div class="pot"></div></div>
+      <div class="coffee"><div class="machine"></div><div class="cup"></div><div class="steam"></div><div class="steam s2"></div></div>
+      <div class="mat">welcome</div>
+      <div class="hdoors" id="hdoors"></div>
+    </div>
+  </div>
+</main>
+<div id="newModal">
+  <div class="backdrop" id="newBackdrop"></div>
+  <div class="nm-panel">
+    <div class="nm-head">🏢 new office <span class="close-x" id="newClose" title="Close">✕</span></div>
+    <div class="nm-field"><label for="ofName">name</label><input id="ofName" type="text" placeholder="e.g. acme" autocomplete="off"></div>
+    <div class="nm-field"><label for="ofPath">local path</label><input id="ofPath" type="text" placeholder="e.g. ~/work/acme" autocomplete="off"></div>
+    <p class="nm-hint">creates the folder with .claude/ ready for agents — hooks are installed automatically</p>
+    <button id="newOk">create office</button>
+  </div>
+</div>
+<script src="/map.js"></script>
+</body>
+</html>

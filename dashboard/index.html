@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentwatch</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo"></span>agentwatch</div>
+  <span class="dot" id="conn"></span>
+  <div class="meta" id="meta">…</div>
+  <div class="spacer"></div>
+  <button id="agentsBtn" title="Installed agents">🤖 agents <span class="cnt" id="agentCnt">0</span></button>
+  <button id="skillsBtn" title="Installed skills">🧩 skills <span class="cnt" id="skillCnt">0</span></button>
+  <button id="usageBtn" title="Show /usage output">📊 usage</button>
+  <div id="clock"><span class="time" id="clockTime">--:--:--</span><span class="date" id="clockDate"></span></div>
+</header>
+<div id="askAlert">
+  <div class="ask-head"><span class="ask-dot"></span><span class="ask-title">the model needs a decision</span><span class="ask-close" id="askClose" title="Close">✕</span></div>
+  <div class="ask-q"></div>
+  <div class="ask-opts"></div>
+  <div class="ask-custom"><input id="askCustomInput" type="text" placeholder="or type a custom answer…"><button id="askCustomSend">send</button></div>
+  <div class="ask-hint">answer here, or in the Claude Code terminal</div>
+</div>
+<div id="doneAlert">
+  <div class="ask-head"><span class="ask-dot"></span><span class="ask-title">session finished</span><span class="ask-close" id="doneClose" title="Close">✕</span></div>
+  <div class="ask-q">✓ all done!</div>
+  <div class="ask-hint">the session has ended — confirm to close</div>
+  <div class="ask-opts"><button class="ask-opt ok" id="doneConfirm">✓ confirm</button></div>
+</div>
+<div id="console">
+  <div class="con-head">
+    <span class="con-dot"></span><span class="con-title">agent</span>
+    <span class="con-desk"></span>
+    <button id="conCtx" title="Show context window usage (/context)">ctx</button>
+    <span class="con-x" id="conClose" title="Close panel (session keeps running — click the agent again to reopen)">─</span>
+    <span class="con-x con-x-danger" id="conFree" title="Free the desk (ends the session for good)">🗑</span>
+  </div>
+  <div class="con-body" id="conBody"><div class="empty">seated — send instructions</div></div>
+  <div class="con-input">
+    <input id="conText" type="text" placeholder="instructions for the agent…" autocomplete="off">
+    <button id="conSend" title="Send">➤</button>
+  </div>
+</div>
+<div id="modal">
+  <div class="backdrop"></div>
+  <div class="modal-panel">
+    <div class="modal-head">🧭 Catalog <span class="close-x" id="modalClose" title="Close">✕</span></div>
+    <div class="mtabs">
+      <button class="mtab active" data-tab="agents">🤖 agents <span id="agentCount"></span></button>
+      <button class="mtab" data-tab="skills">🧩 skills <span id="skillCount"></span></button>
+    </div>
+    <div class="section tabpane active" id="pane-agents">
+      <div class="aside-title">Agents</div>
+      <div id="agentList"></div>
+    </div>
+    <div class="section tabpane" id="pane-skills">
+      <div class="aside-title">Skills</div>
+      <div id="skillList"></div>
+    </div>
+    <button class="rescan-note" id="rescan2">↻ rescan agents & skills</button>
+  </div>
+</div>
+<div id="docModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title" id="docTitle">doc</span>
+      <div class="doc-tabs">
+        <button class="dtab active" data-tab="md">rendered</button>
+        <button class="dtab" data-tab="raw">raw</button>
+      </div>
+      <span class="close-x" id="docClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body" id="docBody"><div class="empty">…</div></div>
+  </div>
+</div>
+<div id="filesModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title">🗂 project files</span>
+      <span class="close-x" id="filesClose" title="Close">✕</span>
+    </div>
+    <div class="files-crumb" id="fileCrumb"></div>
+    <div id="fileRepo"></div>
+    <div class="doc-body" id="filesBody"><div class="empty">…</div></div>
+  </div>
+</div>
+<div id="gitModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title" id="gitTitle">🗂 local git changes</span>
+      <span class="close-x" id="gitClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body" id="gitBody"><div class="empty">…</div></div>
+  </div>
+</div>
+<div id="usageModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title">usage · session</span>
+      <span class="close-x" id="usageClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body" id="usageBody"><div class="empty">…</div></div>
+  </div>
+</div>
+<div id="tasksModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title" id="tasksTitle">📋 tasks · docs/stories</span>
+      <div class="doc-tabs" id="tasksTabs">
+        <button class="dtab active" data-tab="all">all</button>
+        <button class="dtab" data-tab="draft">draft</button>
+        <button class="dtab" data-tab="in-progress">in progress</button>
+        <button class="dtab" data-tab="done">done</button>
+      </div>
+      <span class="close-x" id="tasksClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body" id="tasksBody"><div class="empty">…</div></div>
+  </div>
+</div>
+<div id="onboardModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title">🚀 set up this project's team</span>
+      <span class="close-x" id="onboardClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body">
+      <p class="onboard-intro">No agents are installed yet in <code>.claude/agents/</code>. Before creating a specialized team, this project needs its planning docs:</p>
+      <div class="onboard-checks">
+        <div class="onboard-check" id="onboardPrd"><span class="oc-icon">…</span><span class="oc-label">docs/prd.md</span></div>
+        <div class="onboard-check" id="onboardArch"><span class="oc-icon">…</span><span class="oc-label">docs/architecture.md</span></div>
+      </div>
+      <p class="onboard-hint" id="onboardHint">Write these two documents first — in your terminal, or by seating the main agent from this office and asking it to draft them.</p>
+      <button class="onboard-create" id="onboardCreateBtn" disabled>🏗️ create team</button>
+      <div class="onboard-status" id="onboardStatus"></div>
+    </div>
+  </div>
+</div>
+<main>
+  <div id="board">
+    <div id="stagewrap">
+      <div id="office">
+        <div class="wall"></div>
+        <div class="floor"></div>
+        <div class="wframe w1"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
+        <div class="wframe w2"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
+        <div class="wframe w3"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
+        <div class="pinboard" id="pinboard" title="open the task kanban">
+          <div class="pb-head"><span class="pb-title">TASKS</span><button class="pb-refresh" id="pbRefresh" title="refresh stories">↻</button></div>
+          <div class="pb-counts" id="pbCounts"></div>
+        </div>
+        <div class="project-sign" id="projectSign" title="project">
+          <div class="chain l"></div>
+          <div class="chain r"></div>
+          <div class="pboard">…</div>
+        </div>
+        <div class="door" id="door"><div class="sign">ENTRANCE</div><div class="dbody"><div class="rail"></div><div class="knob"></div></div><div class="flap"></div></div>
+        <div class="plant"><div class="stem"></div><div class="leaf l1"></div><div class="leaf l2"></div><div class="leaf l3"></div><div class="pot"></div></div>
+        <div class="coffee" id="coffee" title="make a coffee ☕">
+          <div class="machine"><div class="mlight"></div><div class="spout"></div></div>
+          <div class="cup"><div class="fill"></div></div>
+          <div class="stream"></div>
+          <div class="steam"></div>
+          <div class="steam s2"></div>
+          <div class="shot">☕ espresso!</div>
+        </div>
+        <div class="rug"></div>
+        <div class="cabinet"><div class="drawer d1" title="documents"></div><div class="drawer d2" title="project files"></div><div class="drawer d3" title="local git changes"></div><div class="potted"></div><div class="doc-tray"><button class="frow" data-doc="docs/prd.md">docs/prd.md</button><button class="frow" data-doc="CLAUDE.md">CLAUDE.md</button><button class="frow" data-doc="docs/architecture.md">docs/architecture.md</button></div></div>
+        <div class="cooler" id="cooler" title="get some water 💧">
+          <div class="tank"><div class="wlevel"></div><div class="bub b1"></div><div class="bub b2"></div><div class="bub b3"></div></div>
+          <div class="cbody"></div>
+          <div class="tap"></div>
+          <div class="drip"></div>
+          <div class="ccup"><div class="cfill"></div></div>
+          <div class="shot">💧 hydration!</div>
+        </div>
+        <div class="bin"></div>
+        <div class="chair k1" style="--hue:210"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="chair k2" style="--hue:150"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="chair k3" style="--hue:300"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="chair k4" style="--hue:25"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="chair k5" style="--hue:100"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="chair kmain" style="--hue:40"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
+        <div class="desk d1" style="--hue:210"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
+        <div class="desk d2" style="--hue:150"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
+        <div class="desk d3" style="--hue:300"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
+        <div class="desk d4" style="--hue:25"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
+        <div class="desk d5" style="--hue:100"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
+        <div class="desk maindesk" style="--hue:40"><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">main desk</div></div>
+        <div id="chars"></div>
+        <div id="fx"></div>
+      </div>
+    </div>
+    <div id="feedwrap">
+      <div id="resizer"><div class="grip"></div><button id="feedToggle" title="hide/show activity">▾ activity</button></div>
+      <div id="feedbar">
+        <button class="fbtn active" data-f="all">All</button>
+        <button class="fbtn" data-f="main">Main</button>
+        <button class="fbtn" data-f="sub">Subagents</button>
+        <button class="fbtn" data-f="skill">Skills</button>
+        <button class="fbtn" data-f="error">Errors</button>
+        <div class="spacer"></div>
+        <input id="search" type="search" placeholder="filter events…">
+      </div>
+      <div id="feed"><div class="empty">waiting for events…</div></div>
+    </div>
+  </div>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
