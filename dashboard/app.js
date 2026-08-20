@@ -1632,6 +1632,24 @@ if (coolerEl) {
   })
 }
 
+const plantEl = $('#plant')
+if (plantEl) {
+  const CHATS = ['🌵 hi!', '🌵 wiggle wiggle!', '🌵 photosynthesizing…', '🌵 water me!', '🌵 doot doot!', '🌵 thorns up!', '🌵 growth spurt!']
+  let dancing = false
+  plantEl.addEventListener('click', () => {
+    if (dancing) return
+    dancing = true
+    plantEl.classList.remove('served')
+    plantEl.querySelector('.shot').textContent = CHATS[Math.floor(Math.random() * CHATS.length)]
+    plantEl.classList.add('boogie')
+    setTimeout(() => {
+      plantEl.classList.remove('boogie')
+      plantEl.classList.add('served')
+    }, 1000)
+    setTimeout(() => { dancing = false }, 2400)
+  })
+}
+
 async function doRescan() {
   const res = await fetch(api('/api/rescan'), { method: 'POST' })
   if (res.ok) {

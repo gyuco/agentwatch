@@ -566,6 +566,38 @@
   .plant .l2 { left: 34px; transform: rotate(0deg); transform-origin: bottom center; }
   .plant .l3 { left: 60px; transform: rotate(24deg); transform-origin: bottom center; }
   .plant .stem { position: absolute; left: 46px; bottom: 36px; width: 8px; height: 44px; background: #3f7d3a; border: 2.5px solid var(--ink); border-radius: 4px; }
+  #plant { cursor: pointer; }
+  #plant:hover .leaf { filter: brightness(1.14) saturate(1.2); }
+  #plant .flower {
+    position: absolute; left: 43px; top: -14px; width: 14px; height: 14px;
+    background: #ffd94a; border: 2.5px solid var(--ink); border-radius: 50%;
+    opacity: 0; transform: scale(0); z-index: 3;
+  }
+  #plant .flower::before, #plant .flower::after {
+    content: ""; position: absolute; width: 10px; height: 10px;
+    background: #ff8fa3; border: 2px solid var(--ink); border-radius: 50%; top: 0;
+  }
+  #plant .flower::before { left: -8px; }
+  #plant .flower::after { right: -8px; }
+  #plant .shot {
+    position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%) scale(0);
+    opacity: 0; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px;
+    padding: 2px 10px; font-size: 11px; font-weight: 800; color: var(--ink);
+    white-space: nowrap; z-index: 5; box-shadow: 2px 3px 0 rgba(47,36,24,.25);
+    pointer-events: none;
+  }
+  #plant .shot::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -5px; border: 5px solid transparent; border-top: 7px solid var(--ink); }
+  #plant.boogie { animation: plantdance .5s ease-in-out infinite; }
+  #plant.boogie .flower { animation: bloom .45s ease-out forwards; }
+  #plant.boogie .leaf.l1 { animation: leafdance1 .3s ease-in-out infinite alternate; }
+  #plant.boogie .leaf.l2 { animation: leafdance2 .3s ease-in-out infinite alternate; }
+  #plant.boogie .leaf.l3 { animation: leafdance3 .3s ease-in-out infinite alternate; }
+  #plant.served .shot { animation: shotpop 1.8s ease-out forwards; }
+  @keyframes plantdance { 0%,100% { transform: rotate(-4deg) scale(1); } 50% { transform: rotate(4deg) scale(1.06); } }
+  @keyframes bloom { 0% { opacity: 0; transform: scale(0) rotate(-40deg); } 60% { opacity: 1; transform: scale(1.35) rotate(12deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+  @keyframes leafdance1 { from { transform: rotate(-34deg); } to { transform: rotate(-14deg); } }
+  @keyframes leafdance2 { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+  @keyframes leafdance3 { from { transform: rotate(14deg); } to { transform: rotate(34deg); } }
   .coffee { position: absolute; left: 88.5%; bottom: 3%; width: 74px; height: 90px; z-index: 2; }
   .coffee .machine { position: absolute; bottom: 30px; left: 6px; width: 62px; height: 60px; background: #4a4a58; border: 3.5px solid var(--ink); border-radius: 10px 10px 4px 4px; }
   .coffee .machine::before { content: ""; position: absolute; top: 6px; left: 8px; right: 8px; height: 12px; background: #6a6a7a; border: 2.5px solid var(--ink); border-radius: 4px; }
@@ -616,14 +648,12 @@
   .cabinet .drawer::after { content: ""; position: absolute; left: 50%; top: 7px; margin-left: -9px; width: 18px; height: 4px; background: var(--ink); border-radius: 2px; }
   .cabinet .d1 { cursor: pointer; transition: transform .22s cubic-bezier(.34,1.4,.5,1); z-index: 4; }
   .cabinet .d1:hover { background: #c9d2db; }
-  .cabinet .d1::before { content: "▸"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9px; color: var(--ink); z-index: 2; }
+  .cabinet .d1::before, .cabinet .d2::before, .cabinet .d3::before { content: "▸"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9px; color: var(--ink); z-index: 2; }
   .cabinet.open .d1 { transform: translateX(70px); }
   .cabinet .d2 { cursor: pointer; transition: background .12s; z-index: 4; }
   .cabinet .d2:hover { background: #c9d2db; }
-  .cabinet .d2::before { content: "🗂"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9px; color: var(--ink); z-index: 2; }
   .cabinet .d3 { cursor: pointer; transition: background .12s; z-index: 4; }
   .cabinet .d3:hover { background: #c9d2db; }
-  .cabinet .d3::before { content: "⎇"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -54%); font-size: 10px; font-weight: 900; color: var(--ink); z-index: 2; }
   .cabinet .doc-tray {
     position: absolute; left: calc(100% + 6px); top: 7px; width: 148px; z-index: 6;
     background: linear-gradient(180deg, #bcc5cf, #aab3bd);
