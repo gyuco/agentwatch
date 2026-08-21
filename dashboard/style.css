@@ -777,6 +777,27 @@
   .bin { position: absolute; left: 648px; bottom: 30px; width: 28px; height: 34px; background: linear-gradient(180deg, #8f9aa5, #737e89); border: 3.5px solid var(--ink); border-radius: 3px 3px 7px 7px; z-index: 2; }
   .bin::before { content: ""; position: absolute; left: -5px; right: -5px; top: -7px; height: 8px; background: #9aa5b0; border: 3px solid var(--ink); border-radius: 4px; }
   .bin::after { content: ""; position: absolute; left: 6px; right: 6px; top: 8px; bottom: 5px; background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(47,36,24,.3) 5px 7px); }
+  /* notepad — click to add a sticky note */
+  .notepad { position: absolute; left: 254px; bottom: 24px; width: 46px; height: 40px; z-index: 4; cursor: pointer; transition: transform .12s cubic-bezier(.34,1.4,.5,1); }
+  .notepad:hover { transform: translateY(-3px) rotate(-2deg); }
+  .notepad:active { transform: translateY(0) scale(.95); }
+  .notepad .pad {
+    position: absolute; inset: 0;
+    background: #fff2b8; border: 3px solid var(--ink); border-radius: 4px;
+    box-shadow: 3px 3px 0 rgba(47,36,24,.2), inset 0 -6px 0 rgba(47,36,24,.06);
+    display: flex; align-items: center; justify-content: center;
+    transform: rotate(-3deg);
+  }
+  .notepad .pad::before { content: ""; position: absolute; left: 5px; right: 5px; top: 5px; height: 3px; background: rgba(47,36,24,.22); border-radius: 2px; }
+  .notepad .ico { font-size: 17px; line-height: 1; margin-top: 4px; filter: saturate(1.1); }
+  .notepad .pencil {
+    position: absolute; right: -9px; top: -6px; width: 7px; height: 34px;
+    background: linear-gradient(180deg, #f2c14e 0 78%, #f0d9b5 78% 90%, #2f2418 90%);
+    border: 2.5px solid var(--ink); border-radius: 3px 3px 1px 1px;
+    transform: rotate(24deg); transform-origin: bottom center;
+  }
+  .notepad:hover .pencil { animation: penscribble .5s ease-in-out infinite; }
+  @keyframes penscribble { 0%,100% { transform: rotate(24deg); } 50% { transform: rotate(12deg) translateY(-2px); } }
   /* ---------- office chairs (behind the people, z below #chars) ---------- */
   .chair { position: absolute; width: 70px; height: 96px; z-index: 2; }
   .chair.k1 { left: 111px; top: 228px; }

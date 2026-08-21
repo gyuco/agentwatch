@@ -132,12 +132,20 @@ function transcriptBlocks(content, toolById) {
   return blocks
 }
 
-async function readTranscript(path) {
+async function readTranscript(path, pending) {
   try {
     const st = await stat(path)
     if (st.size > MAX_TRANSCRIPT_BYTES) return { found: false, error: 'transcript too large' }
   } catch (err) {
-    return { found: false, error: err && err.code === 'ENOENT' ? 'no transcript recorded for this agent' : 'unreadable transcript' }
+    if (err && err.code === 'ENOENT') {
+      return {
+        found: false,
+        error: pending
+          ? 'transcript not available yet — it appears once the agent starts writing its first message'
+          : 'no transcript recorded for this agent — it may have ended before writing one, or its session file may have moved'
+      }
+    }
+    return { found: false, error: 'unreadable transcript' }
   }
   let data
   try {
@@ -773,7 +781,8 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
         })
         return
       }
-      readTranscript(path)
+      const pending = agent && (agent.status === 'running' || agent.status === 'started')
+      readTranscript(path, pending)
         .then((data) => json(res, 200, data))
         .catch((err) => json(res, 500, { found: false, error: String((err && err.message) || err) }))
       return
