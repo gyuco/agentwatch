@@ -518,6 +518,64 @@
   .pin.done { text-decoration: line-through; color: var(--ok); background: #e9f7e2; animation: pinok .5s ease-out; }
   @keyframes pinin { from { transform: scale(.2) rotate(40deg); opacity: 0; } }
   @keyframes pinok { 0%,100% { transform: rotate(var(--rot, 0deg)); } 50% { transform: rotate(var(--rot, 0deg)) scale(1.25); } }
+  #notes { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+  .sticky {
+    position: absolute; width: 172px; min-height: 88px;
+    background: hsl(var(--hue, 48) 92% 82%);
+    border: 2.5px solid var(--ink); border-radius: 6px;
+    box-shadow: 3px 4px 0 rgba(47,36,24,.18);
+    padding: 9px 8px 7px;
+    pointer-events: auto; cursor: grab;
+    transform: rotate(var(--rot, -1deg));
+    transition: box-shadow .12s, transform .12s;
+    animation: pinin .3s ease-out;
+    font-size: 11px;
+    touch-action: none;
+  }
+  .sticky::before {
+    content: "●"; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: var(--accent); text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  }
+  .sticky:hover { box-shadow: 5px 7px 0 rgba(47,36,24,.22); }
+  .sticky.dragging {
+    cursor: grabbing; z-index: 60;
+    transform: rotate(0deg) scale(1.05);
+    box-shadow: 10px 14px 24px rgba(47,36,24,.38);
+  }
+  .st-head { display: flex; align-items: center; gap: 5px; }
+  .st-grip { font-size: 10px; flex: 0 0 auto; opacity: .85; }
+  .st-title { flex: 1 1 auto; font-weight: 900; color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; letter-spacing: .02em; }
+  .st-btn {
+    background: rgba(255,255,255,.6); border: 1.5px solid var(--ink); border-radius: 5px;
+    width: 18px; height: 18px; padding: 0; margin: 0;
+    font-size: 9px; line-height: 1; font-weight: 900; color: var(--ink);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: none; flex: 0 0 auto;
+  }
+  .st-btn:hover { background: #fff; transform: none; box-shadow: none; }
+  .st-btn:active { transform: none; }
+  .st-del:hover { background: var(--error); color: var(--paper); }
+  .st-body {
+    margin-top: 5px; color: var(--text); line-height: 1.35;
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 96px; overflow: auto;
+  }
+  .st-editor { display: none; flex-direction: column; gap: 4px; margin-top: 5px; }
+  .sticky.editing { cursor: default; z-index: 60; transform: rotate(0deg) scale(1.03); box-shadow: 8px 10px 20px rgba(47,36,24,.32); }
+  .sticky.editing .st-body, .sticky.editing .st-title, .sticky.editing .st-edit, .sticky.editing .st-del { display: none; }
+  .sticky.editing .st-editor { display: flex; }
+  .st-in-title, .st-in-text {
+    border: 1.5px solid var(--ink); border-radius: 4px;
+    background: rgba(255,255,255,.75); color: var(--text);
+    font-family: var(--font); font-size: 11px; padding: 3px 5px;
+    resize: none; width: 100%;
+  }
+  .st-in-title { font-weight: 800; }
+  .st-in-text { min-height: 58px; }
+  .st-in-title:focus, .st-in-text:focus { outline: 2px solid var(--accent); outline-offset: 0; background: #fff; }
+  .st-actions { display: flex; gap: 4px; justify-content: flex-end; }
+  .st-actions .st-btn { width: auto; height: auto; padding: 2px 7px; font-size: 9.5px; border-radius: 999px; }
+  .st-save:hover { background: var(--ok); color: var(--paper); }
   /* entrance door: a proper door in the back wall, framed like the windows,
      ending exactly at the floor line so it never overlaps desks or chairs */
   .door {

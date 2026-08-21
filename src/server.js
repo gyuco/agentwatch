@@ -1,7 +1,7 @@
 import { createServer as httpServer } from 'node:http'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readFileSync, appendFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, join, relative, resolve, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { EventCollector, MAIN_ID } from './collector.js'
 import { scanCatalog } from './scan.js'
 import { attachQueueWatcher } from './queue.js'
-import { queueFile, portFile } from './paths.js'
+import { queueFile, portFile, notesFile } from './paths.js'
 import { loadOffices, addOffice, removeOffice } from './offices.js'
 import { installHooks, uninstallHooks, installedHooks } from './settings.js'
 
@@ -76,6 +76,34 @@ function readJson(req) {
 
 const MAX_TRANSCRIPT_BYTES = 32 * 1024 * 1024
 const MAX_TRANSCRIPT_MESSAGES = 500
+
+const MAX_NOTES = 50
+const NOTE_TITLE_MAX = 120
+const NOTE_TEXT_MAX = 4000
+const OFFICE_W = 960
+const OFFICE_H = 540
+
+const clampNum = (v, min, max) => {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return min
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+function readNotes(project) {
+  try {
+    const data = JSON.parse(readFileSync(notesFile(project), 'utf8'))
+    return Array.isArray(data.notes) ? data.notes : []
+  } catch {
+    return []
+  }
+}
+
+function writeNotes(project, notes) {
+  try {
+    mkdirSync(dirname(notesFile(project)), { recursive: true })
+    writeFileSync(notesFile(project), JSON.stringify({ notes }, null, 2))
+  } catch {}
+}
 
 const cap = (s, n) => {
   s = String(s ?? '')
@@ -419,6 +447,47 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     json(res, 200, { ok: true })
   }
 
+  function handleNotesSave(ctx, body, res) {
+    const notes = readNotes(ctx.project)
+    const title = String(body.title ?? '').slice(0, NOTE_TITLE_MAX)
+    const text = String(body.text ?? '').slice(0, NOTE_TEXT_MAX)
+    const x = clampNum(body.x, 0, OFFICE_W - 40)
+    const y = clampNum(body.y, 0, OFFICE_H - 30)
+    const id = String(body.id || '').trim()
+    let note = id ? notes.find((n) => n.id === id) : null
+    if (note) {
+      Object.assign(note, { title, text, x, y, updatedAt: Date.now() })
+    } else {
+      note = {
+        id: 'note-' + randomUUID().slice(0, 8),
+        title,
+        text,
+        x,
+        y,
+        hue: Math.floor(Math.random() * 360),
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      notes.push(note)
+      if (notes.length > MAX_NOTES) notes.splice(0, notes.length - MAX_NOTES)
+    }
+    writeNotes(ctx.project, notes)
+    broadcastTo(ctx, 'notes', { notes })
+    json(res, 200, { ok: true, note })
+  }
+
+  function handleNotesDelete(ctx, body, res) {
+    const id = String(body.id || '').trim()
+    if (!id) {
+      json(res, 400, { error: 'id required' })
+      return
+    }
+    const notes = readNotes(ctx.project).filter((n) => n.id !== id)
+    writeNotes(ctx.project, notes)
+    broadcastTo(ctx, 'notes', { notes })
+    json(res, 200, { ok: true })
+  }
+
   const ctxForProject = (p) => {
     const want = resolve(String(p || ''))
     for (const ctx of contexts.values()) {
@@ -688,12 +757,13 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     if (rest === '/api/transcript' && req.method === 'GET') {
       const agentId = String(url.searchParams.get('agent') || '')
       const agent = agentId && ctx.collector.agents.get(agentId)
-      if (!agent) {
-        json(res, 404, { found: false, error: 'unknown agent' })
-        return
-      }
-      const path = ctx.collector.transcriptPathFor(agentId)
+      let path = agent ? ctx.collector.transcriptPathFor(agentId) : null
+      if (!path && agentId && agentId !== MAIN_ID) path = ctx.collector.subagentTranscriptPath(agentId)
       if (!path) {
+        if (!agent) {
+          json(res, 404, { found: false, error: 'unknown agent — no session data for this id' })
+          return
+        }
         const pending = agent.status === 'running' || agent.status === 'started'
         json(res, 200, {
           found: false,
@@ -713,6 +783,25 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       listStories(ctx.project)
         .then((stories) => json(res, 200, { stories }))
         .catch((err) => json(res, 500, { error: String((err && err.message) || err) }))
+      return
+    }
+
+    if (rest === '/api/notes' && req.method === 'GET') {
+      json(res, 200, { notes: readNotes(ctx.project) })
+      return
+    }
+
+    if (rest === '/api/notes/save' && req.method === 'POST') {
+      readJson(req)
+        .then((body) => handleNotesSave(ctx, body, res))
+        .catch(() => json(res, 400, { error: 'invalid json' }))
+      return
+    }
+
+    if (rest === '/api/notes/delete' && req.method === 'POST') {
+      readJson(req)
+        .then((body) => handleNotesDelete(ctx, body, res))
+        .catch(() => json(res, 400, { error: 'invalid json' }))
       return
     }
 

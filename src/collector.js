@@ -386,16 +386,20 @@ export class EventCollector {
     return [...this.agents.values()].filter((a) => a.status === 'running' || a.status === 'started')
   }
 
-  transcriptPathFor(agentId) {
-    const agent = this.agents.get(agentId)
-    if (!agent) return null
-    if (agent.transcriptPath) return agent.transcriptPath
-    if (agent.isMain) return null
+  subagentTranscriptPath(agentId) {
     const main = this.agents.get(MAIN_ID)
     const mainPath = main && main.transcriptPath
     if (!mainPath || typeof mainPath !== 'string') return null
     const dir = mainPath.replace(/\.jsonl$/, '')
     return join(dir, 'subagents', `agent-${agentId}.jsonl`)
+  }
+
+  transcriptPathFor(agentId) {
+    const agent = this.agents.get(agentId)
+    if (!agent) return null
+    if (agent.transcriptPath) return agent.transcriptPath
+    if (agent.isMain) return null
+    return this.subagentTranscriptPath(agent.id)
   }
 
   snapshot() {

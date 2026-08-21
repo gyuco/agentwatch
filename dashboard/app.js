@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null }
+const state = { catalog: { agents: [], skills: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, notes: [] }
 
 const AGW = (window.AGW_PREFIX || '').replace(/\/+$/, '')
 const api = (p) => AGW + p
@@ -1014,6 +1014,7 @@ function connect() {
     }
     applySnapshot({ ...data.collector, seats: data.seats, asks: data.asks })
     loadStories()
+    loadNotes()
     if (state.catalog.agents.length === 0) showOnboardModal()
     else closeOnboardModal()
   })
@@ -1035,6 +1036,11 @@ function connect() {
   es.addEventListener('usage', (e) => {
     state.usage = JSON.parse(e.data)
     if ($('#usageModal').classList.contains('open')) renderUsage()
+  })
+  es.addEventListener('notes', (e) => {
+    const d = JSON.parse(e.data)
+    state.notes = d.notes || []
+    maybeRenderNotes()
   })
   es.onerror = () => {
     state.connected = false
@@ -1142,6 +1148,184 @@ $('#tasksBody').addEventListener('click', (e) => {
   if (!card) return
   openDoc(card.dataset.file)
 })
+
+const OFFICE_W = 960
+const OFFICE_H = 540
+const clampN = (v, min, max) => Math.min(max, Math.max(min, v))
+const officeScale = () => ($('#office').getBoundingClientRect().width / OFFICE_W) || 1
+
+let notesEditingId = null
+let notesDrag = null
+let notesDirty = false
+
+function renderNotes() {
+  const wrap = $('#notes')
+  wrap.innerHTML = ''
+  for (const n of state.notes) wrap.appendChild(noteEl(n))
+}
+
+function maybeRenderNotes() {
+  if (notesDrag || notesEditingId) { notesDirty = true; return }
+  renderNotes()
+}
+
+function afterNoteInteraction() {
+  if (notesDirty && !notesDrag && !notesEditingId) { notesDirty = false; renderNotes() }
+}
+
+function noteEl(n) {
+  const el = document.createElement('div')
+  el.className = 'sticky'
+  el.dataset.id = n.id
+  el.style.left = n.x + 'px'
+  el.style.top = n.y + 'px'
+  el.style.setProperty('--hue', n.hue ?? 48)
+  el.style.setProperty('--rot', ((hashOf(n.id || 'x') % 7) - 3) + 'deg')
+  el.innerHTML = `<div class="st-head">
+      <span class="st-grip">📌</span>
+      <span class="st-title"></span>
+      <button class="st-btn st-edit" title="modifica nota">✎</button>
+      <button class="st-btn st-del" title="elimina nota">✕</button>
+    </div>
+    <div class="st-body"></div>
+    <div class="st-editor">
+      <input class="st-in-title" maxlength="120" placeholder="titolo…">
+      <textarea class="st-in-text" maxlength="4000" placeholder="scrivi qui…"></textarea>
+      <div class="st-actions">
+        <button class="st-btn st-save" title="salva">💾 salva</button>
+        <button class="st-btn st-cancel" title="annulla">annulla</button>
+      </div>
+    </div>`
+  el.querySelector('.st-title').textContent = n.title || 'senza titolo'
+  el.querySelector('.st-body').textContent = n.text || '—'
+  el.querySelector('.st-edit').addEventListener('click', () => startNoteEdit(el, n))
+  el.querySelector('.st-del').addEventListener('click', async () => {
+    if (!confirm('eliminare questa nota?')) return
+    state.notes = state.notes.filter((x) => x.id !== n.id)
+    el.remove()
+    if (n.id) {
+      try { await fetch(api('/api/notes/delete'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: n.id }) }) } catch {}
+    }
+  })
+  el.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.st-btn, .st-editor, input, textarea')) return
+    if (notesEditingId === n.id) return
+    notesDrag = { id: n.id, el, n, sx: e.clientX, sy: e.clientY, l: el.offsetLeft, t: el.offsetTop }
+    el.classList.add('dragging')
+    try { el.setPointerCapture(e.pointerId) } catch {}
+  })
+  el.addEventListener('pointermove', (e) => {
+    if (!notesDrag || notesDrag.el !== el) return
+    const s = officeScale()
+    const x = clampN(notesDrag.l + (e.clientX - notesDrag.sx) / s, 0, OFFICE_W - el.offsetWidth)
+    const y = clampN(notesDrag.t + (e.clientY - notesDrag.sy) / s, 0, OFFICE_H - el.offsetHeight)
+    el.style.left = x + 'px'
+    el.style.top = y + 'px'
+    n.x = Math.round(x)
+    n.y = Math.round(y)
+  })
+  const endDrag = async (e) => {
+    if (!notesDrag || notesDrag.el !== el) return
+    notesDrag = null
+    el.classList.remove('dragging')
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+    await saveNote(n)
+    afterNoteInteraction()
+  }
+  el.addEventListener('pointerup', endDrag)
+  el.addEventListener('pointercancel', endDrag)
+  const inTitle = el.querySelector('.st-in-title')
+  const inText = el.querySelector('.st-in-text')
+  inTitle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); inText.focus() }
+    if (e.key === 'Escape') { e.stopPropagation(); cancelNoteEdit(el, n) }
+  })
+  inText.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveNoteEdit(el, n) }
+    if (e.key === 'Escape') { e.stopPropagation(); cancelNoteEdit(el, n) }
+  })
+  el.querySelector('.st-save').addEventListener('click', () => saveNoteEdit(el, n))
+  el.querySelector('.st-cancel').addEventListener('click', () => cancelNoteEdit(el, n))
+  return el
+}
+
+async function saveNote(n) {
+  if (!n.id) return
+  try {
+    const res = await fetch(api('/api/notes/save'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: n.id, title: n.title, text: n.text, x: n.x, y: n.y })
+    })
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+  } catch (e) {
+    alert('impossibile salvare la nota: ' + String(e && e.message || e) + ' — riavvia il server agentwatch per caricare il supporto note')
+  }
+}
+
+function startNoteEdit(el, n) {
+  notesEditingId = n.id
+  el.classList.add('editing')
+  el.querySelector('.st-in-title').value = n.title || ''
+  el.querySelector('.st-in-text').value = n.text || ''
+  el.querySelector('.st-in-title').focus()
+}
+
+function cancelNoteEdit(el, n) {
+  if (!n.id) {
+    state.notes = state.notes.filter((x) => x !== n)
+    el.remove()
+  } else {
+    el.classList.remove('editing')
+  }
+  notesEditingId = null
+  afterNoteInteraction()
+}
+
+async function saveNoteEdit(el, n) {
+  n.title = el.querySelector('.st-in-title').value.trim().slice(0, 120)
+  n.text = el.querySelector('.st-in-text').value.slice(0, 4000)
+  try {
+    const res = await fetch(api('/api/notes/save'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: n.id || undefined, title: n.title, text: n.text, x: n.x, y: n.y })
+    })
+    const d = await res.json()
+    if (d.ok && d.note) Object.assign(n, d.note)
+    else throw new Error(d.error || 'HTTP ' + res.status)
+  } catch (e) {
+    alert('impossibile salvare la nota: ' + String(e && e.message || e) + ' — riavvia il server agentwatch per caricare il supporto note')
+  }
+  notesEditingId = null
+  el.classList.remove('editing')
+  el.dataset.id = n.id
+  el.querySelector('.st-title').textContent = n.title || 'senza titolo'
+  el.querySelector('.st-body').textContent = n.text || '—'
+  afterNoteInteraction()
+}
+
+async function addNote() {
+  if (notesEditingId) return
+  const i = state.notes.length
+  const n = {
+    id: '', title: 'Promemoria',
+    text: 'Nota di esempio: trascinami sul muro, clicca ✎ per modificarmi, ✕ per eliminarmi.',
+    x: clampN(28 + (i % 4) * 186, 0, OFFICE_W - 180),
+    y: clampN(16 + Math.floor(i / 4) * 108, 0, OFFICE_H - 150),
+    hue: Math.floor(Math.random() * 360)
+  }
+  state.notes.push(n)
+  renderNotes()
+  startNoteEdit($('#notes').querySelector(`[data-id=""]`), n)
+}
+
+function loadNotes() {
+  fetch(api('/api/notes'))
+    .then((r) => r.json())
+    .then((d) => { state.notes = d.notes || []; renderNotes() })
+    .catch(() => {})
+}
+
+$('#notesBtn').addEventListener('click', addNote)
 
 function confirmDone() {
   $('#doneAlert').classList.remove('show')

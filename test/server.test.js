@@ -102,6 +102,36 @@ test('endpoints: state, hooks, rescan, stop, hook ingestion, SSE snapshot', asyn
   assert.equal(bad.status, 400)
 })
 
+test('transcript resolves subagents unknown to the collector via the main session path', async (t) => {
+  const root = fixture()
+  const collector = new EventCollector()
+  const app = startServer({ collector, project: root, catalog: { agents: [], skills: [] } })
+  await app.listen()
+  t.after(() => app.close())
+  const port = app.port()
+
+  const mainPath = join(root, 'session-main.jsonl')
+  collector.ingest(makeEv('Stop', { transcript_path: mainPath }))
+  const subId = 'a2609e7a00da181c0'
+  collector.ingest(makeEv('PreToolUse', { agent_id: subId, agent_type: 'coder', tool_name: 'Bash', tool_input: { command: 'ls' } }))
+
+  const missing = await httpJson(port, '/api/transcript?agent=' + subId)
+  assert.equal(missing.status, 200)
+  assert.equal(missing.json().found, false)
+
+  const subDir = join(root, 'session-main', 'subagents')
+  mkdirSync(subDir, { recursive: true })
+  writeFileSync(join(subDir, `agent-${subId}.jsonl`), JSON.stringify({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'hello from subagent' }] } }) + '\n')
+
+  const hit = await httpJson(port, '/api/transcript?agent=' + subId)
+  assert.equal(hit.status, 200)
+  assert.equal(hit.json().found, true)
+  assert.equal(hit.json().messages[0].blocks[0].text, 'hello from subagent')
+
+  const ghost = await httpJson(port, '/api/transcript?agent=nope')
+  assert.equal(ghost.json().found, false)
+})
+
 test('stories endpoint reads docs/stories with status and lane', async (t) => {
   const root = fixture()
   const storiesDir = join(root, 'docs', 'stories')

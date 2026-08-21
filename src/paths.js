@@ -30,6 +30,10 @@ export function hooksRegistryFile(root) {
   return join(agentwatchDir(root), 'hooks.json')
 }
 
+export function notesFile(root) {
+  return join(agentwatchDir(root), 'notes.json')
+}
+
 export function backupsDir(root) {
   return join(agentwatchDir(root), 'backups')
 }
