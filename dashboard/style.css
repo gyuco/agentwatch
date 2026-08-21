@@ -777,10 +777,10 @@
   .bin { position: absolute; left: 648px; bottom: 30px; width: 28px; height: 34px; background: linear-gradient(180deg, #8f9aa5, #737e89); border: 3.5px solid var(--ink); border-radius: 3px 3px 7px 7px; z-index: 2; }
   .bin::before { content: ""; position: absolute; left: -5px; right: -5px; top: -7px; height: 8px; background: #9aa5b0; border: 3px solid var(--ink); border-radius: 4px; }
   .bin::after { content: ""; position: absolute; left: 6px; right: 6px; top: 8px; bottom: 5px; background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(47,36,24,.3) 5px 7px); }
-  /* notepad — click to add a sticky note */
-  .notepad { position: absolute; left: 254px; bottom: 24px; width: 46px; height: 40px; z-index: 4; cursor: pointer; transition: transform .12s cubic-bezier(.34,1.4,.5,1); }
-  .notepad:hover { transform: translateY(-3px) rotate(-2deg); }
-  .notepad:active { transform: translateY(0) scale(.95); }
+  /* notepad — click to add a sticky note (bottom of the tasks pinboard) */
+  .notepad { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); width: 40px; height: 34px; z-index: 3; cursor: pointer; transition: transform .12s cubic-bezier(.34,1.4,.5,1); }
+  .notepad:hover { transform: translateX(-50%) translateY(-3px) rotate(-2deg); }
+  .notepad:active { transform: translateX(-50%) translateY(0) scale(.95); }
   .notepad .pad {
     position: absolute; inset: 0;
     background: #fff2b8; border: 3px solid var(--ink); border-radius: 4px;
@@ -788,16 +788,8 @@
     display: flex; align-items: center; justify-content: center;
     transform: rotate(-3deg);
   }
-  .notepad .pad::before { content: ""; position: absolute; left: 5px; right: 5px; top: 5px; height: 3px; background: rgba(47,36,24,.22); border-radius: 2px; }
-  .notepad .ico { font-size: 17px; line-height: 1; margin-top: 4px; filter: saturate(1.1); }
-  .notepad .pencil {
-    position: absolute; right: -9px; top: -6px; width: 7px; height: 34px;
-    background: linear-gradient(180deg, #f2c14e 0 78%, #f0d9b5 78% 90%, #2f2418 90%);
-    border: 2.5px solid var(--ink); border-radius: 3px 3px 1px 1px;
-    transform: rotate(24deg); transform-origin: bottom center;
-  }
-  .notepad:hover .pencil { animation: penscribble .5s ease-in-out infinite; }
-  @keyframes penscribble { 0%,100% { transform: rotate(24deg); } 50% { transform: rotate(12deg) translateY(-2px); } }
+  .notepad .pad::before { content: ""; position: absolute; left: 5px; right: 5px; top: 4px; height: 3px; background: rgba(47,36,24,.22); border-radius: 2px; }
+  .notepad .ico { font-size: 15px; line-height: 1; filter: saturate(1.1); }
   /* ---------- office chairs (behind the people, z below #chars) ---------- */
   .chair { position: absolute; width: 70px; height: 96px; z-index: 2; }
   .chair.k1 { left: 111px; top: 228px; }
@@ -898,6 +890,35 @@
   .desk.maindesk .mouse { left: 134px; }
   .desk.maindesk .pens { left: 178px; }
   .desk.maindesk .front { left: 26px; right: 36px; }
+  /* desk phone (main desk only) — click to take the CEO's video call */
+  .desk.maindesk .phone { position: absolute; left: 64px; top: 40px; width: 34px; height: 26px; z-index: 7; cursor: pointer; transition: transform .12s cubic-bezier(.34,1.4,.5,1); }
+  .desk.maindesk .phone:hover { transform: translateY(-2px) scale(1.06); }
+  .desk.maindesk .phone:active { transform: translateY(0) scale(.96); }
+  .phone .pbase {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 15px;
+    background: linear-gradient(180deg, #3d3a46, #2b2833); border: 2.5px solid var(--ink);
+    border-radius: 3px 3px 5px 5px; box-shadow: 0 2px 0 rgba(47,36,24,.3);
+  }
+  .phone .pkeys { position: absolute; left: 3px; bottom: 2px; width: 14px; height: 7px; background: repeating-linear-gradient(90deg, #7b8796 0 2px, transparent 2px 4px), repeating-linear-gradient(180deg, #7b8796 0 2px, transparent 2px 4px); border-radius: 1px; }
+  .phone .pcord { position: absolute; right: 2px; bottom: 12px; width: 9px; height: 8px; border: 2px solid var(--ink); border-top: none; border-right: none; border-radius: 0 0 0 6px; }
+  .phone .phandset {
+    position: absolute; left: -1px; top: 0; width: 36px; height: 12px;
+    background: linear-gradient(180deg, #4a4756, #332f3c); border: 2.5px solid var(--ink);
+    border-radius: 7px; transform-origin: left center;
+  }
+  .phone .phandset::before, .phone .phandset::after { content: ""; position: absolute; top: -3px; width: 9px; height: 11px; background: #4a4756; border: 2.5px solid var(--ink); border-radius: 4px; }
+  .phone .phandset::before { left: -2px; }
+  .phone .phandset::after { right: -2px; }
+  .phone .pring { position: absolute; left: 50%; top: -2px; width: 9px; height: 9px; margin-left: -4px; border: 2.5px solid var(--accent); border-radius: 50%; opacity: 0; }
+  .desk.maindesk .phone.ringing { animation: phoneshake .28s ease-in-out infinite; }
+  .desk.maindesk .phone.ringing .phandset { animation: handsetjig .28s ease-in-out infinite; }
+  .phone.ringing .pring { animation: ringwave 1.1s ease-out infinite; }
+  .phone.ringing .r2 { animation-delay: .55s; }
+  .phone.offhook .phandset { transform: translate(-4px, -13px) rotate(-24deg); }
+  .phone.offhook .pring { opacity: 0; animation: none; }
+  @keyframes phoneshake { 0%,100% { transform: rotate(0) translateX(0); } 25% { transform: rotate(-3deg) translateX(-1px); } 75% { transform: rotate(3deg) translateX(1px); } }
+  @keyframes handsetjig { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+  @keyframes ringwave { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(2.6); opacity: 0; } }
   .desk.maindesk .dname { font-size: 12px; font-weight: 900; }
   .desk.maindesk.empty { cursor: pointer; }
   .desk.maindesk.empty .monitor .screen { color: #f4d35e; animation: pulse 1.6s ease-in-out infinite; }
@@ -1447,6 +1468,127 @@
   .hdoor.add .plus { font-size: 46px; font-weight: 900; color: var(--ink); line-height: 1; }
   .hdoors.many .hdoor.add .plus { font-size: 36px; }
   .hdoor.add .dsign { background: var(--ink); color: var(--paper); }
+  /* ---------- fake CEO video call ---------- */
+  #callModal { position: fixed; inset: 0; z-index: 280; display: none; }
+  #callModal.open { display: block; }
+  #callModal .backdrop { position: absolute; inset: 0; background: rgba(47,36,24,.62); animation: fadein .2s ease-out; }
+  .call-panel {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(520px, 94vw);
+    background: var(--paper); border: 3.5px solid var(--ink); border-radius: 14px;
+    box-shadow: 0 14px 44px rgba(47,36,24,.55);
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: callin .26s cubic-bezier(.34,1.5,.5,1);
+  }
+  @keyframes callin { from { transform: translate(-50%, -50%) scale(.82); opacity: 0; } }
+  .call-head {
+    display: flex; align-items: center; gap: 9px; flex: 0 0 auto;
+    padding: 9px 12px; background: var(--paper-2); border-bottom: 3px solid var(--ink);
+  }
+  .call-rec { width: 10px; height: 10px; border-radius: 50%; background: var(--error); border: 2px solid var(--ink); flex: 0 0 auto; animation: pulse 1.4s infinite; }
+  .call-title { font-family: var(--mono); font-size: 12.5px; font-weight: 800; color: var(--ink); }
+  .call-timer { margin-left: auto; font-family: var(--mono); font-size: 11.5px; font-weight: 800; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 1px 9px; }
+  #callModal .close-x {
+    background: var(--accent); color: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px;
+    width: 28px; height: 28px; font-size: 14px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 2px 0 var(--ink); transition: transform .1s; flex: 0 0 auto;
+  }
+  #callModal .close-x:hover { transform: rotate(90deg); }
+  .call-stage { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+  .call-video {
+    position: relative; height: 232px; overflow: hidden;
+    background: linear-gradient(180deg, #1d2a38, #101821);
+    border: 3.5px solid var(--ink); border-radius: 10px;
+    box-shadow: inset 0 0 34px rgba(0,0,0,.5);
+  }
+  .call-video::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);
+  }
+  .cv-room { position: absolute; inset: 0; }
+  .cv-window { position: absolute; left: 7%; top: 12%; width: 30%; height: 42%; background: linear-gradient(180deg, #4b7fa8, #2f5c80); border: 3px solid #0d141b; border-radius: 4px; box-shadow: inset 0 0 0 3px rgba(255,255,255,.08); }
+  .cv-window::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: #0d141b; }
+  .cv-window::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; background: #0d141b; }
+  .cv-plant { position: absolute; right: 5%; bottom: 0; width: 34px; height: 58px; background: #b4603a; border: 3px solid #0d141b; border-radius: 4px 4px 9px 9px; }
+  .cv-plant::before { content: ""; position: absolute; left: -6px; bottom: 32px; width: 22px; height: 34px; background: #2f7a44; border: 3px solid #0d141b; border-radius: 60% 20% 60% 20%; transform: rotate(-14deg); }
+  .cv-plant::after { content: ""; position: absolute; right: -6px; bottom: 32px; width: 22px; height: 34px; background: #276a3b; border: 3px solid #0d141b; border-radius: 20% 60% 20% 60%; transform: rotate(14deg); }
+  .cv-chart { position: absolute; right: 6%; top: 11%; width: 26%; height: 34%; background: #f3e6c8; border: 3px solid #0d141b; border-radius: 4px; display: flex; align-items: flex-end; gap: 5px; padding: 7px 8px; }
+  .cv-bar { flex: 1; background: var(--error); border: 2px solid #0d141b; border-radius: 2px 2px 0 0; }
+  .cv-bar.b1 { height: 78%; }
+  .cv-bar.b2 { height: 56%; }
+  .cv-bar.b3 { height: 34%; }
+  .cv-bar.b4 { height: 18%; }
+  .cv-arrow { position: absolute; right: 5px; top: 2px; font-size: 15px; font-weight: 900; color: var(--error); }
+  .ceo { position: absolute; left: 50%; bottom: 0; width: 150px; margin-left: -75px; height: 178px; }
+  .ceo-head { position: absolute; left: 50%; top: 0; margin-left: -37px; width: 74px; height: 82px; background: var(--ceo-skin, #f0c193); border: 3.5px solid var(--ink); border-radius: 38% 38% 44% 44%; z-index: 2; }
+  .ceo-hair { position: absolute; left: -4px; right: -4px; top: -6px; height: 26px; background: #6d6b74; border: 3.5px solid var(--ink); border-radius: 40% 40% 14% 14%; }
+  .ceo-hair::before, .ceo-hair::after { content: ""; position: absolute; top: 12px; width: 10px; height: 22px; background: #6d6b74; border: 3.5px solid var(--ink); border-radius: 5px; }
+  .ceo-hair::before { left: -6px; }
+  .ceo-hair::after { right: -6px; }
+  .ceo-brow { position: absolute; top: 30px; width: 21px; height: 5px; background: var(--ink); border-radius: 3px; transition: transform .18s; }
+  .ceo-brow.l { left: 8px; transform: rotate(-6deg); }
+  .ceo-brow.r { right: 8px; transform: rotate(6deg); }
+  .ceo-eye { position: absolute; top: 41px; width: 11px; height: 12px; background: var(--ink); border-radius: 50%; }
+  .ceo-eye.l { left: 13px; }
+  .ceo-eye.r { right: 13px; }
+  .ceo-nose { position: absolute; left: 50%; top: 52px; margin-left: -3px; width: 7px; height: 12px; background: rgba(47,36,24,.3); border-radius: 4px; }
+  .ceo-mouth { position: absolute; left: 50%; top: 66px; margin-left: -15px; width: 30px; height: 7px; background: #7a3b32; border: 2.5px solid var(--ink); border-radius: 4px; transition: height .12s, border-radius .12s; }
+  .ceo-body { position: absolute; left: 50%; bottom: 0; margin-left: -60px; width: 120px; height: 106px; }
+  .ceo-jacket { position: absolute; inset: 0; top: 8px; background: #2e3a4c; border: 3.5px solid var(--ink); border-radius: 22px 22px 0 0; }
+  .ceo-shirt { position: absolute; left: 50%; top: 0; margin-left: -21px; width: 42px; height: 58px; background: #fdf8ec; border: 3.5px solid var(--ink); border-radius: 6px 6px 0 0; }
+  .ceo-tie { position: absolute; left: 50%; top: 6px; margin-left: -7px; width: 14px; height: 52px; background: var(--error); border: 3px solid var(--ink); border-radius: 3px 3px 8px 8px; clip-path: polygon(0 0, 100% 0, 78% 100%, 22% 100%); }
+  /* moods */
+  .ceo.talking .ceo-mouth { animation: ceotalk .26s ease-in-out infinite; }
+  .ceo.annoyed .ceo-brow.l { transform: rotate(15deg) translateY(3px); }
+  .ceo.annoyed .ceo-brow.r { transform: rotate(-15deg) translateY(3px); }
+  .ceo.furious { animation: ceoshake .22s ease-in-out infinite; --ceo-skin: #f0a882; }
+  .ceo.furious .ceo-brow.l { transform: rotate(24deg) translateY(5px); }
+  .ceo.furious .ceo-brow.r { transform: rotate(-24deg) translateY(5px); }
+  @keyframes ceotalk { 0%,100% { height: 7px; border-radius: 4px; } 50% { height: 19px; border-radius: 8px 8px 12px 12px; } }
+  @keyframes ceoshake { 0%,100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-3px) rotate(-1.4deg); } 75% { transform: translateX(3px) rotate(1.4deg); } }
+  .call-name {
+    position: absolute; left: 9px; bottom: 9px; z-index: 3;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 800; color: var(--paper);
+    background: rgba(47,36,24,.78); border: 2px solid var(--ink); border-radius: 999px; padding: 2px 9px;
+  }
+  .call-badge {
+    position: absolute; right: 9px; top: 9px; z-index: 3;
+    font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--ink); background: var(--main); border: 2.5px solid var(--ink);
+    border-radius: 999px; padding: 2px 9px; transition: background .2s;
+  }
+  .call-badge.annoyed { background: #f5a742; }
+  .call-badge.furious { background: var(--error); color: var(--paper); animation: pulse 1s infinite; }
+  .call-self {
+    position: absolute; right: 9px; bottom: 9px; z-index: 3;
+    width: 66px; height: 50px; overflow: hidden;
+    background: linear-gradient(180deg, #2c3b2c, #1a241a);
+    border: 3px solid var(--ink); border-radius: 7px;
+  }
+  .cs-you { position: absolute; left: 50%; bottom: -13px; margin-left: -17px; width: 34px; height: 34px; border-radius: 50% 50% 40% 40%; background: #ffd9a0; border: 3px solid var(--ink); }
+  .cs-you::before { content: ""; position: absolute; left: -4px; right: -4px; top: -5px; height: 13px; background: #5a4632; border: 3px solid var(--ink); border-radius: 40% 40% 10% 10%; }
+  .cs-label { position: absolute; left: 4px; top: 3px; font-family: var(--mono); font-size: 8px; font-weight: 800; color: var(--paper); }
+  .call-self.muted::after { content: "🔇"; position: absolute; right: 3px; top: 2px; font-size: 11px; }
+  .call-sub {
+    min-height: 62px; border: 3px solid var(--ink); border-radius: 10px;
+    background: var(--paper-2); padding: 9px 12px;
+    font-size: 13.5px; font-weight: 700; line-height: 1.45; color: var(--ink);
+    box-shadow: 0 2px 0 rgba(0,0,0,.14);
+  }
+  .call-sub .cs-caret { display: inline-block; width: 8px; height: 14px; vertical-align: -2px; background: var(--ink); animation: blinky .7s step-end infinite; }
+  .call-bar { display: flex; gap: 8px; padding: 0 14px 14px; }
+  .call-btn {
+    flex: 1; font-size: 12.5px; font-weight: 800; padding: 7px 6px;
+    border: 2.5px solid var(--ink); border-radius: 999px; background: var(--paper-2);
+    color: var(--ink); cursor: pointer; box-shadow: 0 2.5px 0 var(--ink); transition: transform .1s, background .12s;
+  }
+  .call-btn:hover { background: #fff; }
+  .call-btn:active { transform: translateY(2px); box-shadow: none; }
+  .call-btn.primary { background: var(--main); }
+  .call-btn.danger { background: var(--error); color: var(--paper); }
+  .call-btn.on { background: var(--ink); color: var(--paper); }
+  .call-btn:disabled { opacity: .5; cursor: default; box-shadow: none; transform: none; }
   #newModal { position: fixed; inset: 0; z-index: 110; display: none; }
   #newModal.open { display: block; }
   #newModal .backdrop {

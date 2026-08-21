@@ -136,6 +136,52 @@
     <div class="doc-body" id="tasksBody"><div class="empty">…</div></div>
   </div>
 </div>
+<div id="callModal">
+  <div class="backdrop"></div>
+  <div class="call-panel">
+    <div class="call-head">
+      <span class="call-rec"></span>
+      <span class="call-title">ceo · urgent alignment</span>
+      <span class="call-timer" id="callTimer">00:00</span>
+      <span class="close-x" id="callClose" title="Leave call">✕</span>
+    </div>
+    <div class="call-stage">
+      <div class="call-video">
+        <div class="cv-room">
+          <div class="cv-window"></div>
+          <div class="cv-plant"></div>
+          <div class="cv-chart"><div class="cv-bar b1"></div><div class="cv-bar b2"></div><div class="cv-bar b3"></div><div class="cv-bar b4"></div><div class="cv-arrow">↘</div></div>
+        </div>
+        <div class="ceo" id="ceoAvatar">
+          <div class="ceo-head">
+            <div class="ceo-hair"></div>
+            <div class="ceo-brow l"></div><div class="ceo-brow r"></div>
+            <div class="ceo-eye l"></div><div class="ceo-eye r"></div>
+            <div class="ceo-nose"></div>
+            <div class="ceo-mouth"></div>
+          </div>
+          <div class="ceo-body">
+            <div class="ceo-jacket"></div>
+            <div class="ceo-shirt"></div>
+            <div class="ceo-tie"></div>
+          </div>
+        </div>
+        <div class="call-name">Richard “Rick” Sterling · CEO</div>
+        <div class="call-badge calm" id="callMood">calm</div>
+        <div class="call-self">
+          <div class="cs-you"></div>
+          <span class="cs-label">you</span>
+        </div>
+      </div>
+      <div class="call-sub" id="callSub">connecting…</div>
+    </div>
+    <div class="call-bar">
+      <button class="call-btn" id="callMute" title="Mute microphone">🎤 mute</button>
+      <button class="call-btn primary" id="callNext" title="Keep listening">▸ listen</button>
+      <button class="call-btn danger" id="callHang" title="End call">📞 end</button>
+    </div>
+  </div>
+</div>
 <div id="onboardModal">
   <div class="backdrop"></div>
   <div class="doc-panel">
@@ -167,6 +213,7 @@
         <div class="pinboard" id="pinboard" title="open the task kanban">
           <div class="pb-head"><span class="pb-title">TASKS</span><button class="pb-refresh" id="pbRefresh" title="refresh stories">↻</button></div>
           <div class="pb-counts" id="pbCounts"></div>
+          <div class="notepad" id="notesBtn" title="add a sticky note 📝"><div class="pad"><span class="ico">📝</span></div></div>
         </div>
         <div id="notes"></div>
         <div class="project-sign" id="projectSign" title="project">
@@ -195,7 +242,6 @@
           <div class="shot">💧 hydration!</div>
         </div>
         <div class="bin"></div>
-        <div class="notepad" id="notesBtn" title="add a sticky note 📝"><div class="pad"><span class="ico">📝</span></div><div class="pencil"></div></div>
         <div class="chair k1" style="--hue:210"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
         <div class="chair k2" style="--hue:150"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
         <div class="chair k3" style="--hue:300"><div class="crest"></div><div class="cback"></div><div class="carm l"></div><div class="carm r"></div><div class="cseat"></div></div>
@@ -207,7 +253,7 @@
         <div class="desk d3" style="--hue:300"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
         <div class="desk d4" style="--hue:25"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
         <div class="desk d5" style="--hue:100"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">desk</div></div>
-        <div class="desk maindesk" style="--hue:40"><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname">main desk</div></div>
+        <div class="desk maindesk" style="--hue:40"><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="phone" id="deskPhone" title="the CEO wants to talk to you ☎️"><div class="pbase"><div class="pkeys"></div></div><div class="pcord"></div><div class="phandset"></div><div class="pring r1"></div><div class="pring r2"></div></div><div class="dname">main desk</div></div>
         <div id="chars"></div>
         <div id="fx"></div>
       </div>

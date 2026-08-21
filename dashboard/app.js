@@ -1184,23 +1184,23 @@ function noteEl(n) {
   el.innerHTML = `<div class="st-head">
       <span class="st-grip">📌</span>
       <span class="st-title"></span>
-      <button class="st-btn st-edit" title="modifica nota">✎</button>
-      <button class="st-btn st-del" title="elimina nota">✕</button>
+      <button class="st-btn st-edit" title="edit note">✎</button>
+      <button class="st-btn st-del" title="delete note">✕</button>
     </div>
     <div class="st-body"></div>
     <div class="st-editor">
-      <input class="st-in-title" maxlength="120" placeholder="titolo…">
-      <textarea class="st-in-text" maxlength="4000" placeholder="scrivi qui…"></textarea>
+      <input class="st-in-title" maxlength="120" placeholder="title…">
+      <textarea class="st-in-text" maxlength="4000" placeholder="write here…"></textarea>
       <div class="st-actions">
-        <button class="st-btn st-save" title="salva">💾 salva</button>
-        <button class="st-btn st-cancel" title="annulla">annulla</button>
+        <button class="st-btn st-save" title="save">💾 save</button>
+        <button class="st-btn st-cancel" title="cancel">cancel</button>
       </div>
     </div>`
-  el.querySelector('.st-title').textContent = n.title || 'senza titolo'
+  el.querySelector('.st-title').textContent = n.title || 'untitled'
   el.querySelector('.st-body').textContent = n.text || '—'
   el.querySelector('.st-edit').addEventListener('click', () => startNoteEdit(el, n))
   el.querySelector('.st-del').addEventListener('click', async () => {
-    if (!confirm('eliminare questa nota?')) return
+    if (!confirm('delete this note?')) return
     state.notes = state.notes.filter((x) => x.id !== n.id)
     el.remove()
     if (n.id) {
@@ -1258,7 +1258,7 @@ async function saveNote(n) {
     })
     if (!res.ok) throw new Error('HTTP ' + res.status)
   } catch (e) {
-    alert('impossibile salvare la nota: ' + String(e && e.message || e) + ' — riavvia il server agentwatch per caricare il supporto note')
+    alert('could not save the note: ' + String(e && e.message || e) + ' — restart the agentwatch server to load notes support')
   }
 }
 
@@ -1293,12 +1293,12 @@ async function saveNoteEdit(el, n) {
     if (d.ok && d.note) Object.assign(n, d.note)
     else throw new Error(d.error || 'HTTP ' + res.status)
   } catch (e) {
-    alert('impossibile salvare la nota: ' + String(e && e.message || e) + ' — riavvia il server agentwatch per caricare il supporto note')
+    alert('could not save the note: ' + String(e && e.message || e) + ' — restart the agentwatch server to load notes support')
   }
   notesEditingId = null
   el.classList.remove('editing')
   el.dataset.id = n.id
-  el.querySelector('.st-title').textContent = n.title || 'senza titolo'
+  el.querySelector('.st-title').textContent = n.title || 'untitled'
   el.querySelector('.st-body').textContent = n.text || '—'
   afterNoteInteraction()
 }
@@ -1307,8 +1307,8 @@ async function addNote() {
   if (notesEditingId) return
   const i = state.notes.length
   const n = {
-    id: '', title: 'Promemoria',
-    text: 'Nota di esempio: trascinami sul muro, clicca ✎ per modificarmi, ✕ per eliminarmi.',
+    id: '', title: 'Reminder',
+    text: 'Sample note: drag me around the wall, click ✎ to edit me, ✕ to delete me.',
     x: clampN(28 + (i % 4) * 186, 0, OFFICE_W - 180),
     y: clampN(16 + Math.floor(i / 4) * 108, 0, OFFICE_H - 150),
     hue: Math.floor(Math.random() * 360)
@@ -1325,7 +1325,143 @@ function loadNotes() {
     .catch(() => {})
 }
 
-$('#notesBtn').addEventListener('click', addNote)
+$('#notesBtn').addEventListener('click', (e) => { e.stopPropagation(); addNote() })
+
+/* ---------- fake CEO video call (desk phone on the main desk) ---------- */
+const CEO_SCRIPT = [
+  { mood: 'calm', text: 'Ah, finally someone picks up! This is Rick, the CEO. Just a second, I promise.' },
+  { mood: 'calm', text: 'So: the project. Where are we? And don\'t tell me "almost ready", you\'ve been repeating that for three sprints.' },
+  { mood: 'annoyed', text: 'I looked at the board this morning. Lots of tasks in progress, very few in done. You know what that chart tells me? That we\'re burning budget.' },
+  { mood: 'annoyed', text: 'The board meets on Friday. FRIDAY. And I have to present something that works, not a demo that crashes on the second click.' },
+  { mood: 'furious', text: 'And don\'t talk to me about refactoring! I don\'t want to hear the word refactoring! I want to see FEATURES. THAT. WORK.' },
+  { mood: 'furious', text: 'So everything ships by Friday. Make those agents work day and night, they\'re machines, they don\'t get tired!' },
+  { mood: 'calm', text: 'Anyway, great work team. I love your energy. See you Friday. Bye bye!' }
+]
+
+const MOOD_LABEL = { calm: 'calm', annoyed: 'annoyed', furious: 'furious' }
+
+const call = { open: false, idx: -1, timer: null, tick: null, type: null, startedAt: 0, muted: false, ringLoop: null }
+
+function setPhoneRinging(on) {
+  const p = $('#deskPhone')
+  if (!p) return
+  p.classList.toggle('ringing', !!on)
+}
+
+// the CEO only bothers the office while the main desk is actually busy
+function scheduleRing() {
+  clearTimeout(call.ringLoop)
+  call.ringLoop = setTimeout(() => {
+    if (!call.open && mainDeskOccupied()) {
+      setPhoneRinging(true)
+      setTimeout(() => setPhoneRinging(false), 7000)
+    }
+    scheduleRing()
+  }, 45000)
+}
+
+function callTypeOut(text) {
+  const el = $('#callSub')
+  clearInterval(call.type)
+  el.textContent = ''
+  const caret = document.createElement('span')
+  caret.className = 'cs-caret'
+  el.appendChild(caret)
+  let i = 0
+  call.type = setInterval(() => {
+    if (i >= text.length) {
+      clearInterval(call.type)
+      call.type = null
+      caret.remove()
+      $('#ceoAvatar').classList.remove('talking')
+      return
+    }
+    caret.insertAdjacentText('beforebegin', text[i++])
+  }, 26)
+}
+
+function callAdvance() {
+  if (!call.open) return
+  if (call.type) {
+    clearInterval(call.type)
+    call.type = null
+    const line = CEO_SCRIPT[call.idx]
+    if (line) $('#callSub').textContent = line.text
+    $('#ceoAvatar').classList.remove('talking')
+    return
+  }
+  call.idx++
+  const line = CEO_SCRIPT[call.idx]
+  if (!line) {
+    $('#callSub').textContent = 'Rick has closed the call. Happy Friday.'
+    $('#ceoAvatar').className = 'ceo'
+    $('#callNext').disabled = true
+    $('#callNext').textContent = '—'
+    return
+  }
+  const ceo = $('#ceoAvatar')
+  ceo.className = 'ceo talking ' + line.mood
+  $('#callMood').textContent = MOOD_LABEL[line.mood] || line.mood
+  $('#callMood').className = 'call-badge ' + line.mood
+  $('#callNext').textContent = call.idx >= CEO_SCRIPT.length - 1 ? '▸ ok, ok…' : '▸ listen'
+  callTypeOut(line.text)
+}
+
+function openCall() {
+  if (call.open) return
+  call.open = true
+  call.idx = -1
+  call.muted = false
+  call.startedAt = Date.now()
+  setPhoneRinging(false)
+  $('#deskPhone').classList.add('offhook')
+  $('#callMute').classList.remove('on')
+  $('#callMute').textContent = '🎤 mute'
+  $('.call-self').classList.remove('muted')
+  $('#callNext').disabled = false
+  $('#callNext').textContent = '▸ listen'
+  $('#callMood').textContent = MOOD_LABEL.calm
+  $('#callMood').className = 'call-badge calm'
+  $('#callSub').textContent = 'connecting…'
+  $('#callTimer').textContent = '00:00'
+  $('#callModal').classList.add('open')
+  clearInterval(call.tick)
+  call.tick = setInterval(() => {
+    const s = Math.floor((Date.now() - call.startedAt) / 1000)
+    $('#callTimer').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+  }, 1000)
+  clearTimeout(call.timer)
+  call.timer = setTimeout(callAdvance, 900)
+}
+
+function closeCall() {
+  if (!call.open) return
+  call.open = false
+  clearInterval(call.tick)
+  clearInterval(call.type)
+  clearTimeout(call.timer)
+  call.tick = call.type = call.timer = null
+  $('#callModal').classList.remove('open')
+  $('#deskPhone').classList.remove('offhook')
+  $('#ceoAvatar').className = 'ceo'
+  scheduleRing()
+}
+
+$('#deskPhone').addEventListener('click', (e) => {
+  e.stopPropagation()
+  openCall()
+})
+$('#callNext').addEventListener('click', callAdvance)
+$('#callHang').addEventListener('click', closeCall)
+$('#callClose').addEventListener('click', closeCall)
+$('#callModal .backdrop').addEventListener('click', closeCall)
+$('#callMute').addEventListener('click', () => {
+  call.muted = !call.muted
+  $('#callMute').classList.toggle('on', call.muted)
+  $('#callMute').textContent = call.muted ? '🔇 muted' : '🎤 mute'
+  $('.call-self').classList.toggle('muted', call.muted)
+})
+scheduleRing()
 
 function confirmDone() {
   $('#doneAlert').classList.remove('show')
@@ -1347,7 +1483,7 @@ document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', ()
 $('#modalClose').addEventListener('click', closeCatalog)
 $('#askClose').addEventListener('click', hideAskAlert)
 $('#modal .backdrop').addEventListener('click', closeCatalog)
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeConsole(); closeGit() } })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeConsole(); closeGit(); closeCall() } })
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault()
