@@ -120,7 +120,7 @@ const WALK_Y = 492
 const DOOR_BASE_Y = 248
 const SPAWN_X = 74
 const CHAR_W = 120
-const CHAR_H = 118
+const CHAR_H = 126
 const SEAT_LIFT = 14
 const HAIRS = ['#5a4632', '#2f2a26', '#8a5a2b', '#c98b45', '#7a4a3a', '#4a4a58']
 const SKINS = ['#ffd9a0', '#f2c08a', '#e0a877', '#c98a5e', '#a6713f']
@@ -150,26 +150,30 @@ const agentPresent = (a) => {
 
 function charHTML(rec) {
   const label = agentLabel(rec)
-  return `<div class="head">
-    <div class="ear l"></div><div class="ear r"></div>
-    <div class="bun"></div>
-    <div class="hair"></div>
-    <div class="brow l"></div><div class="brow r"></div>
-    <div class="eye l"></div><div class="eye r"></div>
-    <div class="glasses"><div class="bridge"></div></div>
-    <div class="cheek l"></div><div class="cheek r"></div>
-    <div class="mouth"></div>
-  </div>
-  <div class="body">
-    <div class="neck"></div>
-    <div class="torso"><div class="collar"></div><div class="badge"></div></div>
-    <div class="arm l"><div class="hand"></div></div>
-    <div class="arm r"><div class="hand"></div></div>
-    <div class="leg l"><div class="shoe"></div></div>
-    <div class="leg r"><div class="shoe"></div></div>
+  return `<div class="ground-shadow"></div>
+  <div class="figure">
+    <div class="head">
+      <div class="ear l"></div><div class="ear r"></div>
+      <div class="bun"></div>
+      <div class="hair"></div>
+      <div class="brow l"></div><div class="brow r"></div>
+      <div class="eye l"></div><div class="eye r"></div>
+      <div class="glasses"><div class="bridge"></div></div>
+      <div class="nose"></div>
+      <div class="cheek l"></div><div class="cheek r"></div>
+      <div class="mouth"></div>
+    </div>
+    <div class="body">
+      <div class="neck"></div>
+      <div class="torso"><div class="collar"></div><div class="badge"></div></div>
+      <div class="arm l"><div class="forearm"><div class="hand"></div></div></div>
+      <div class="arm r"><div class="forearm"><div class="hand"></div></div></div>
+      <div class="leg l"><div class="shoe"></div></div>
+      <div class="leg r"><div class="shoe"></div></div>
+    </div>
+    <div class="book"><div class="spine"></div></div>
     <div class="zzz"></div>
   </div>
-  <div class="book"><div class="spine"></div></div>
   <div class="nameplate">${esc(label)}</div>
   <div class="bubble"></div>`
 }
@@ -396,6 +400,7 @@ function ensureChar(rec) {
   el.style.setProperty('--hue', hue)
   el.style.setProperty('--hair', HAIRS[(h >> 3) % HAIRS.length])
   el.style.setProperty('--skin', SKINS[(h >> 5) % SKINS.length])
+  el.style.setProperty('--motion-delay', `-${(h % 37) / 10}s`)
   el.innerHTML = charHTML(rec, hue)
   el.addEventListener('click', () => {
     if (state.seats.has(rec.id)) { toggleConsole(rec.id); return }
@@ -450,6 +455,7 @@ function refreshDeskLabel(c) {
 function sitChar(c, instant) {
   const s = c.slot
   const desk = document.querySelector(s.desk)
+  c.el.classList.remove('walking', 'walking-out')
   c.el.classList.add('seated')
   c.el.style.left = desk.offsetLeft + 'px'
   c.el.style.top = (desk.offsetTop - SEAT_LIFT) + 'px'
@@ -466,7 +472,7 @@ function sitChar(c, instant) {
 function walkIn(c) {
   c.leaving = false
   const s = c.slot
-  c.el.classList.remove('seated')
+  c.el.classList.remove('seated', 'walking-out')
   c.el.style.zIndex = 5
   c.el.style.left = (SPAWN_X - CHAR_W / 2) + 'px'
   c.el.style.top = (DOOR_BASE_Y - CHAR_H) + 'px'
@@ -496,7 +502,7 @@ function walkOut(c) {
   c.leaving = true
   c.el.classList.remove('seated', 'typing', 'reading', 'error', 'thinking')
   c.el.style.zIndex = 5
-  c.el.classList.add('walking')
+  c.el.classList.add('walking', 'walking-out')
   openDoor()
   c.el.style.left = (SPAWN_X - CHAR_W / 2) + 'px'
   c.el.style.top = (WALK_Y - CHAR_H) + 'px'

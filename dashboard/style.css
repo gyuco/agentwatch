@@ -871,6 +871,7 @@
   .desk .pens::before { content: ""; position: absolute; left: 1px; top: -9px; width: 4px; height: 12px; background: var(--accent); border: 2px solid var(--ink); border-radius: 2px; transform: rotate(-12deg); }
   .desk .pens::after { content: ""; position: absolute; right: 1px; top: -8px; width: 4px; height: 11px; background: var(--sub); border: 2px solid var(--ink); border-radius: 2px; transform: rotate(11deg); }
   .desk .dname { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px; padding: 1px 9px; font-size: 10px; font-weight: 800; color: var(--ink); white-space: nowrap; max-width: 168px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 0 rgba(47,36,24,.25); z-index: 7; }
+  .desk .dname:empty { display: none; }
   .desk .dname .st { color: var(--muted); font-weight: 700; }
   .desk.maindesk { left: 420px; top: 417px; width: 200px; z-index: 6; }
   .desk.maindesk .divider { display: none; }
@@ -917,21 +918,26 @@
   .desk.maindesk.empty:hover .monitor { filter: brightness(1.15); }
   #chars { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
   .char {
-    position: absolute; width: 120px; height: 118px; pointer-events: auto; cursor: pointer;
+    position: absolute; width: 120px; height: 126px; pointer-events: auto; cursor: pointer;
     --skin: #ffd9a0; --ink: #33261c;
     --body: hsl(var(--hue) 62% 52%); --pants: hsl(var(--hue) 50% 32%); --sleeve: hsl(var(--hue) 58% 43%);
     transform-origin: 50% 100%;
     transition: left .9s cubic-bezier(.55,0,.28,1), top .8s cubic-bezier(.55,0,.28,1), opacity .5s, transform .45s ease-out;
     z-index: 3;
   }
-  .char .head { position: absolute; top: 0; left: 38px; width: 44px; height: 42px; background: var(--skin); border: 3px solid var(--ink); border-radius: 46% 46% 42% 42%; z-index: 3; }
-  .char .ear { position: absolute; top: 17px; width: 9px; height: 12px; background: var(--skin); border: 3px solid var(--ink); border-radius: 50%; z-index: -1; }
-  .char .ear.l { left: -8px; }
-  .char .ear.r { right: -8px; }
+  .char .figure { position: absolute; inset: 0; --rest-y: 0px; transform-origin: 50% 100%; animation: breathe 4.6s ease-in-out infinite; animation-delay: var(--motion-delay, 0s); }
+  .char .ground-shadow { position: absolute; left: 39px; bottom: -4px; width: 43px; height: 10px; border-radius: 50%; background: rgba(47,36,24,.22); filter: blur(1px); transform-origin: center; transition: transform .25s, opacity .25s; }
+  .char.seated .ground-shadow { transform: scaleX(.75); opacity: .12; }
+  .char .head { position: absolute; top: 0; left: 40px; width: 40px; height: 45px; background: linear-gradient(115deg, color-mix(in srgb, var(--skin) 92%, white), var(--skin) 58%, color-mix(in srgb, var(--skin) 88%, #9b5f3c)); border: 3px solid var(--ink); border-radius: 48% 48% 44% 44% / 42% 42% 52% 52%; z-index: 5; transform-origin: 50% 88%; }
+  .char .head::after { content: ""; position: absolute; left: 5px; right: 5px; bottom: 2px; height: 8px; border-radius: 50%; box-shadow: inset 0 -2px 0 rgba(121,70,45,.12); pointer-events: none; }
+  .char .ear { position: absolute; top: 18px; width: 8px; height: 12px; background: var(--skin); border: 2.5px solid var(--ink); border-radius: 50%; z-index: -1; }
+  .char .ear::after { content: ""; position: absolute; inset: 3px 2px; border-left: 1.5px solid rgba(91,51,35,.38); border-radius: 50%; }
+  .char .ear.l { left: -7px; }
+  .char .ear.r { right: -7px; transform: scaleX(-1); }
   /* hair: a cap on the crown plus short side locks that never cover the eyes */
-  .char .hair { position: absolute; top: -5px; left: -4px; right: -4px; height: 17px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-radius: 50% 50% 22% 22%; z-index: 2; }
-  .char .hair::before { content: ""; position: absolute; left: -1px; top: 9px; width: 8px; height: 14px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-top: none; border-radius: 0 0 6px 6px; }
-  .char .hair::after { content: ""; position: absolute; right: -1px; top: 9px; width: 8px; height: 11px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-top: none; border-radius: 0 0 6px 6px; }
+  .char .hair { position: absolute; top: -5px; left: -4px; right: -4px; height: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--hair, #5a4632) 75%, white), var(--hair, #5a4632) 45%); border: 3px solid var(--ink); border-radius: 54% 52% 22% 22%; z-index: 2; }
+  .char .hair::before { content: ""; position: absolute; left: -1px; top: 9px; width: 7px; height: 15px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-top: none; border-radius: 0 0 6px 6px; }
+  .char .hair::after { content: ""; position: absolute; right: -1px; top: 9px; width: 7px; height: 12px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-top: none; border-radius: 0 0 6px 6px; }
   /* alternate hairstyles keep everyone from looking like clones */
   .char.look-b .hair { border-radius: 50% 50% 14% 14%; height: 14px; }
   .char.look-b .hair::before, .char.look-b .hair::after { height: 8px; }
@@ -939,26 +945,29 @@
   .char.look-c .hair::before, .char.look-c .hair::after { height: 20px; border-radius: 0 0 7px 7px; }
   .char .bun { display: none; position: absolute; top: -11px; right: -12px; width: 18px; height: 18px; background: var(--hair, #5a4632); border: 3px solid var(--ink); border-radius: 50%; z-index: 1; }
   .char.look-c .bun { display: block; }
-  .char .glasses { display: none; position: absolute; top: 15px; left: 4px; right: 4px; height: 13px; z-index: 4; }
+  .char .glasses { display: none; position: absolute; top: 16px; left: 3px; right: 3px; height: 12px; z-index: 6; }
   .char.look-d .glasses { display: block; }
-  .char .glasses::before, .char .glasses::after { content: ""; position: absolute; top: 0; width: 14px; height: 13px; border: 2.5px solid var(--ink); border-radius: 5px; background: rgba(190,225,255,.28); }
+  .char .glasses::before, .char .glasses::after { content: ""; position: absolute; top: 0; width: 13px; height: 11px; border: 2px solid var(--ink); border-radius: 5px; background: rgba(190,225,255,.2); }
   .char .glasses::before { left: 0; }
   .char .glasses::after { right: 0; }
   .char .glasses .bridge { position: absolute; left: 50%; top: 5px; width: 8px; margin-left: -4px; height: 2.5px; background: var(--ink); border-radius: 2px; }
-  .char .eye { position: absolute; top: 17px; width: 7px; height: 9px; background: #fff; border: 2.5px solid var(--ink); border-radius: 50%; animation: blink 4.2s infinite; z-index: 3; }
-  .char .eye::after { content: ""; position: absolute; left: 2px; top: 3px; width: 3.5px; height: 4px; background: var(--ink); border-radius: 50%; }
-  .char .eye.l { left: 9px; }
-  .char .eye.r { right: 9px; }
-  @keyframes blink { 0%,91%,100% { transform: scaleY(1); } 94% { transform: scaleY(.1); } }
-  .char .brow { position: absolute; top: 11px; width: 11px; height: 3.5px; background: var(--ink); border-radius: 3px; transition: transform .2s; z-index: 5; }
-  .char .brow.l { left: 8px; }
-  .char .brow.r { right: 8px; }
-  .char .cheek { position: absolute; top: 27px; width: 8px; height: 5px; border-radius: 50%; background: #f4a8a0; opacity: 0; transition: opacity .2s; z-index: 3; }
+  .char .eye { position: absolute; top: 18px; width: 6px; height: 7px; background: #fffdf7; border: 2px solid var(--ink); border-radius: 50%; animation: blink 5.2s infinite; animation-delay: var(--motion-delay, 0s); z-index: 3; transform-origin: center; }
+  .char .eye::after { content: ""; position: absolute; left: 1.5px; top: 2px; width: 2.5px; height: 3px; background: var(--ink); border-radius: 50%; animation: glance 7s ease-in-out infinite; animation-delay: var(--motion-delay, 0s); }
+  .char .eye.l { left: 8px; }
+  .char .eye.r { right: 8px; }
+  @keyframes blink { 0%,46%,49%,92%,95%,100% { transform: scaleY(1); } 47.5%,93.5% { transform: scaleY(.12); } }
+  @keyframes glance { 0%,20%,48%,100% { transform: translateX(0); } 27%,40% { transform: translateX(1.5px); } 62%,74% { transform: translateX(-1px); } }
+  .char .brow { position: absolute; top: 12px; width: 10px; height: 2.5px; background: var(--ink); border-radius: 3px; transition: transform .2s; z-index: 5; }
+  .char .brow.l { left: 7px; }
+  .char .brow.r { right: 7px; }
+  .char .nose { position: absolute; left: 50%; top: 23px; width: 4px; height: 7px; margin-left: -2px; border-right: 1.7px solid rgba(91,51,35,.62); border-bottom: 1.7px solid rgba(91,51,35,.5); border-radius: 0 0 4px 0; z-index: 4; }
+  .char .cheek { position: absolute; top: 29px; width: 7px; height: 4px; border-radius: 50%; background: #e99187; opacity: 0; transition: opacity .2s; z-index: 3; }
   .char .cheek.l { left: 3px; }
   .char .cheek.r { right: 3px; }
-  .char .mouth { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); width: 13px; height: 6px; border-bottom: 3px solid var(--ink); border-radius: 0 0 12px 12px; transition: all .2s; z-index: 3; }
-  .char .neck { position: absolute; top: 36px; left: 53px; width: 14px; height: 12px; background: var(--skin); border: 3px solid var(--ink); border-radius: 3px; z-index: 1; }
-  .char .torso { position: absolute; top: 44px; left: 40px; width: 40px; height: 40px; background: var(--body); border: 3px solid var(--ink); border-radius: 14px 14px 8px 8px; z-index: 2; }
+  .char .mouth { position: absolute; left: 50%; top: 33px; transform: translateX(-50%); width: 11px; height: 4px; border-bottom: 2.5px solid var(--ink); border-radius: 0 0 12px 12px; transition: all .2s; z-index: 3; }
+  .char .body { position: absolute; inset: 0; }
+  .char .neck { position: absolute; top: 39px; left: 53px; width: 14px; height: 13px; background: linear-gradient(90deg, color-mix(in srgb, var(--skin) 88%, #9b5f3c), var(--skin)); border: 3px solid var(--ink); border-radius: 3px 3px 5px 5px; z-index: 1; }
+  .char .torso { position: absolute; top: 48px; left: 39px; width: 42px; height: 44px; background: linear-gradient(110deg, color-mix(in srgb, var(--body) 88%, white), var(--body) 55%, color-mix(in srgb, var(--body) 82%, black)); border: 3px solid var(--ink); border-radius: 13px 13px 8px 8px; z-index: 2; box-shadow: inset 0 -5px 0 rgba(47,36,24,.09); }
   /* open collar over a shirt */
   .char .torso .collar { position: absolute; left: 50%; top: -2px; transform: translateX(-50%); width: 18px; height: 15px; background: var(--shirt, #fff8e6); border: 2.5px solid var(--ink); border-top: none; border-radius: 0 0 9px 9px; }
   .char .torso::before { content: ""; position: absolute; left: 50%; top: -3px; margin-left: -10px; width: 9px; height: 13px; background: var(--body); border-right: 3px solid var(--ink); border-radius: 0 0 8px 0; transform: rotate(-8deg); z-index: 2; }
@@ -966,17 +975,25 @@
   /* clip-on badge */
   .char .torso .badge { position: absolute; left: 5px; bottom: 6px; width: 11px; height: 8px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 2px; }
   .char .torso .badge::before { content: ""; position: absolute; left: 1px; right: 1px; top: 1px; height: 2px; background: var(--accent); }
-  .char .arm { position: absolute; top: 47px; width: 11px; height: 30px; background: var(--sleeve); border: 3px solid var(--ink); border-radius: 7px; transform-origin: top center; z-index: 4; transition: transform .25s; }
-  .char .arm.l { left: 31px; transform: rotate(24deg); }
-  .char .arm.r { left: 78px; transform: rotate(-24deg); }
-  .char .arm .hand { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 11px; height: 10px; background: var(--skin); border: 3px solid var(--ink); border-radius: 50% 50% 45% 45%; }
-  .char .leg { position: absolute; top: 82px; width: 14px; height: 36px; background: var(--pants); border: 3px solid var(--ink); border-radius: 5px 5px 7px 7px; transform-origin: top center; transition: transform .3s; }
-  .char .leg.l { left: 45px; }
+  .char .arm { position: absolute; top: 51px; width: 12px; height: 25px; background: linear-gradient(90deg, var(--sleeve), color-mix(in srgb, var(--sleeve) 78%, black)); border: 3px solid var(--ink); border-radius: 8px; transform-origin: 50% 5px; z-index: 4; transition: transform .28s cubic-bezier(.4,0,.2,1); }
+  .char .arm.l { left: 30px; transform: rotate(16deg); }
+  .char .arm.r { left: 78px; transform: rotate(-16deg); }
+  .char .forearm { position: absolute; left: -2px; top: 17px; width: 11px; height: 23px; background: linear-gradient(90deg, var(--skin), color-mix(in srgb, var(--skin) 86%, #9b5f3c)); border: 3px solid var(--ink); border-radius: 7px; transform-origin: 50% 4px; transition: transform .24s cubic-bezier(.4,0,.2,1); }
+  .char .arm.l .forearm { transform: rotate(-8deg); }
+  .char .arm.r .forearm { transform: rotate(8deg); }
+  .char .hand { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 12px; height: 10px; background: var(--skin); border: 3px solid var(--ink); border-radius: 50% 50% 48% 48%; }
+  .char .leg { position: absolute; top: 87px; width: 15px; height: 34px; background: linear-gradient(90deg, var(--pants), color-mix(in srgb, var(--pants) 75%, black)); border: 3px solid var(--ink); border-radius: 5px 5px 7px 7px; transform-origin: 50% 4px; transition: transform .3s; }
+  .char .leg.l { left: 44px; }
   .char .leg.r { left: 61px; }
-  .char .leg .shoe { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 17px; height: 9px; background: #4a3b2d; border: 3px solid var(--ink); border-radius: 5px 5px 9px 9px; }
-  /* seated: hands rest forward on the desk */
-  .char.seated .arm.l { transform: rotate(38deg); }
-  .char.seated .arm.r { transform: rotate(-38deg); }
+  .char .leg .shoe { position: absolute; bottom: -6px; left: 48%; transform: translateX(-50%); width: 19px; height: 9px; background: linear-gradient(180deg, #5b4938, #332a23); border: 3px solid var(--ink); border-radius: 5px 8px 9px 9px; }
+  /* seated: shoulders relax, elbows bend naturally toward the keyboard */
+  .char.seated .figure { --rest-y: 3px; }
+  .char.seated .arm.l { transform: rotate(29deg); }
+  .char.seated .arm.r { transform: rotate(-29deg); }
+  .char.seated .arm.l .forearm { transform: rotate(-28deg); }
+  .char.seated .arm.r .forearm { transform: rotate(28deg); }
+  .char.seated .leg.l { transform: rotate(9deg) scaleY(.85); }
+  .char.seated .leg.r { transform: rotate(-9deg) scaleY(.85); }
   .char .nameplate {
     position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
     background: var(--paper); border: 2.5px solid var(--ink); border-radius: 999px;
@@ -987,40 +1004,53 @@
   }
   .char:has(.bubble.show) .nameplate { opacity: 0; }
   .char .zzz { position: absolute; top: 6px; right: 6px; font-size: 13px; font-weight: 900; color: var(--sub); opacity: 0; transition: opacity .3s; }
-  .char .body { position: absolute; inset: 0; animation: breathe 3.4s ease-in-out infinite; }
-  @keyframes breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+  @keyframes breathe { 0%,100% { transform: translateY(var(--rest-y)) rotate(0); } 45% { transform: translateY(calc(var(--rest-y) - 1.2px)) rotate(.25deg); } 52% { transform: translateY(calc(var(--rest-y) - 1.6px)) rotate(0); } }
   .char.walking { z-index: 5; }
-  .char.walking .body { animation: bob .4s ease-in-out infinite alternate; }
-  .char.walking .leg.l { animation: stride .4s ease-in-out infinite alternate; }
-  .char.walking .leg.r { animation: stride .4s ease-in-out infinite alternate-reverse; }
-  .char.walking .arm.l { animation: swing .4s ease-in-out infinite alternate; }
-  .char.walking .arm.r { animation: swing .4s ease-in-out infinite alternate-reverse; }
-  @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
-  @keyframes stride { from { transform: rotate(-26deg); } to { transform: rotate(26deg); } }
-  @keyframes swing { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
-  .char.typing .arm.r { animation: typer .16s ease-in-out infinite alternate; }
-  .char.typing .arm.l { animation: typel .16s ease-in-out infinite alternate-reverse; }
-  .char.typing .head { animation: nod .5s ease-in-out infinite alternate; }
-  @keyframes typer { from { transform: rotate(24deg); } to { transform: rotate(40deg); } }
-  @keyframes typel { from { transform: rotate(-24deg); } to { transform: rotate(-40deg); } }
-  @keyframes nod { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
-  .char.reading .arm.l { transform: rotate(100deg); }
-  .char.reading .arm.r { transform: rotate(-100deg); }
+  .char.walking .figure { animation: gaitBob .52s cubic-bezier(.45,.05,.55,.95) infinite; }
+  .char.walking-out .figure { animation-name: gaitBobLeft; }
+  .char.walking .ground-shadow { animation: shadowStep .52s ease-in-out infinite; }
+  .char.walking .leg.l { animation: stride .52s cubic-bezier(.45,.05,.55,.95) infinite alternate; }
+  .char.walking .leg.r { animation: stride .52s cubic-bezier(.45,.05,.55,.95) infinite alternate-reverse; }
+  .char.walking .arm.l { animation: swing .52s ease-in-out infinite alternate-reverse; }
+  .char.walking .arm.r { animation: swing .52s ease-in-out infinite alternate; }
+  .char.walking .forearm { transform: rotate(2deg); }
+  @keyframes gaitBob { 0%,100% { transform: translateY(0) scaleX(1) rotate(-.5deg); } 50% { transform: translateY(-4px) scaleX(1) rotate(.5deg); } }
+  @keyframes gaitBobLeft { 0%,100% { transform: translateY(0) scaleX(-1) rotate(-.5deg); } 50% { transform: translateY(-4px) scaleX(-1) rotate(.5deg); } }
+  @keyframes shadowStep { 0%,100% { transform: scaleX(1); opacity: .22; } 50% { transform: scaleX(.78); opacity: .14; } }
+  @keyframes stride { from { transform: rotate(-24deg); } to { transform: rotate(25deg); } }
+  @keyframes swing { from { transform: rotate(-28deg); } to { transform: rotate(27deg); } }
+  .char.typing .figure { animation: workingPosture 2.8s ease-in-out infinite; }
+  .char.typing .arm.l, .char.typing .arm.r { animation: none; }
+  .char.typing .arm.r .forearm { animation: typeRight .22s ease-in-out infinite alternate; }
+  .char.typing .arm.l .forearm { animation: typeLeft .22s ease-in-out infinite alternate-reverse; }
+  .char.typing .head { animation: screenFocus 2.4s ease-in-out infinite; }
+  @keyframes workingPosture { 0%,100% { transform: translateY(3px) rotate(0); } 50% { transform: translateY(4px) rotate(.6deg); } }
+  @keyframes typeRight { from { transform: rotate(22deg) translateY(0); } to { transform: rotate(31deg) translateY(1.5px); } }
+  @keyframes typeLeft { from { transform: rotate(-22deg) translateY(1.5px); } to { transform: rotate(-31deg) translateY(0); } }
+  @keyframes screenFocus { 0%,75%,100% { transform: rotate(0) translateY(0); } 82%,92% { transform: rotate(-1.5deg) translateY(1px); } }
+  .char.reading .figure { animation: readSway 3s ease-in-out infinite; }
+  .char.reading .arm.l { transform: rotate(58deg); }
+  .char.reading .arm.r { transform: rotate(-58deg); }
+  .char.reading .arm.l .forearm { transform: rotate(25deg); }
+  .char.reading .arm.r .forearm { transform: rotate(-25deg); }
   .char.reading .book { display: block; }
-  .char .book { display: none; position: absolute; top: 26px; left: 50%; transform: translateX(-50%); width: 30px; height: 22px; z-index: 5; animation: bookwig .7s ease-in-out infinite alternate; }
+  .char .book { display: none; position: absolute; top: 67px; left: 50%; transform: translateX(-50%); width: 32px; height: 22px; z-index: 7; animation: bookwig 1.4s ease-in-out infinite alternate; }
   .char .book::before, .char .book::after { content: ""; position: absolute; top: 0; bottom: 0; width: 14px; background: #f3e2b0; border: 2.5px solid var(--ink); }
   .char .book::before { left: 0; border-radius: 4px 1px 1px 4px; }
   .char .book::after { right: 0; border-radius: 1px 4px 4px 1px; border-left: none; }
   .char .book .spine { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
-  @keyframes bookwig { from { transform: translateX(-50%) rotate(-5deg); } to { transform: translateX(-50%) rotate(5deg); } }
-  .char.happy .body { animation: hop .45s ease-in-out 2; }
+  @keyframes bookwig { from { transform: translateX(-50%) rotate(-2deg); } to { transform: translateX(-50%) rotate(2deg); } }
+  @keyframes readSway { 0%,100% { transform: translateY(3px) rotate(-.5deg); } 50% { transform: translateY(2px) rotate(.7deg); } }
+  .char.happy .figure { animation: hop .45s ease-in-out 2; }
   .char.happy .mouth { width: 17px; height: 11px; border-radius: 0 0 18px 18px; }
   .char.happy .cheek { opacity: 1; }
   .char.happy .brow.l { transform: rotate(8deg); }
   .char.happy .brow.r { transform: rotate(-8deg); }
   .char.happy .arm.l { transform: rotate(75deg); }
   .char.happy .arm.r { transform: rotate(-75deg); }
-  @keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-13px); } }
+  .char.happy .ground-shadow { animation: happyShadow .45s ease-in-out 2; }
+  @keyframes hop { 0%,100% { transform: translateY(3px); } 45% { transform: translateY(-10px); } }
+  @keyframes happyShadow { 0%,100% { transform: scaleX(.75); opacity: .16; } 45% { transform: scaleX(.48); opacity: .08; } }
   .char.error { animation: shake .4s ease-in-out 3; }
   .char.error .mouth { width: 11px; height: 11px; border: 3px solid var(--ink); border-radius: 50%; background: var(--ink); }
   .char.error .brow.l { transform: rotate(20deg) translateY(2px); }
@@ -1032,6 +1062,9 @@
   .char.busy .mouth { width: 11px; height: 10px; background: var(--ink); border: none; border-radius: 4px 4px 7px 7px; }
   .char.thinking .mouth { width: 8px; height: 8px; border: 3px solid var(--ink); border-bottom-color: transparent; border-radius: 50%; }
   .char.thinking .brow.l { transform: rotate(-8deg) translateY(1px); }
+  .char.thinking .head { transform: rotate(-4deg) translateY(1px); }
+  .char.thinking .arm.r { transform: rotate(-62deg); }
+  .char.thinking .arm.r .forearm { transform: rotate(-56deg); }
   .char.focus { outline: 3px dashed var(--accent); outline-offset: 3px; border-radius: 12px; }
   .char.pop { animation: popin .45s ease-out; }
   @keyframes popin { 0% { transform: scale(.2); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); } }
@@ -1056,6 +1089,12 @@
   .char .zzz::after { content: "z"; position: absolute; left: -8px; top: 6px; font-size: 9px; opacity: .7; }
   .char.sleeping .zzz { opacity: 1; animation: zfloat 2.2s ease-in-out infinite; }
   @keyframes zfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .char, .char .figure, .char .head, .char .eye, .char .eye::after,
+    .char .arm, .char .forearm, .char .leg, .char .ground-shadow,
+    .char .book, .char .zzz { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+    .char { transition-duration: .001ms !important; }
+  }
   #fx { position: absolute; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
   .confetti { position: absolute; top: -14px; width: 8px; height: 13px; background: var(--c); border: 1.5px solid var(--ink); border-radius: 2px; animation: fall 1.7s ease-in forwards; }
   @keyframes fall { to { transform: translateY(430px) rotate(720deg); opacity: 0; } }
