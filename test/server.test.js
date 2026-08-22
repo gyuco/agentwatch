@@ -180,6 +180,10 @@ test('dashboard html is served at /', async (t) => {
   assert.ok(body.includes('agentwatch'))
   assert.ok(body.includes('/app.js'))
   assert.ok(body.includes('/style.css'))
+  assert.ok(body.includes('id="teamModal"'))
+  assert.ok(body.includes('class="drawer d1" title="team"'))
+  assert.ok(!body.includes('docs/prd.md'))
+  assert.ok(!body.includes('onboardModal'))
   const js = await httpJson(app.port(), '/app.js')
   assert.equal(js.status, 200)
   assert.ok(await new Promise((resolve, reject) => {

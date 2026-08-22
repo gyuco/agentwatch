@@ -870,6 +870,36 @@ function renderCatalog() {
         <div class="mcp-source">${esc(m.source)}</div>
       </div>`).join('')
     : '<div class="mcp-empty">no project MCP servers found</div>'
+  renderTeam()
+}
+
+function renderTeam() {
+  const configured = state.catalog.agents || []
+  const configuredTypes = new Set(configured.map((a) => a.id))
+  const active = [...state.byId.values()].filter((a) => !a.isMain && agentPresent(a))
+  const extraActive = active.filter((a) => !configuredTypes.has(a.type))
+  const body = $('#teamBody')
+  if (!body) return
+  $('#teamTitle').textContent = `🤖 team · ${configured.length} configured · ${active.length} active`
+  const configuredHtml = configured.map((a) => {
+    const running = active.some((r) => r.type === a.id)
+    const seated = seatByType(a.id)
+    return `<div class="note team-member">
+      <h4><span class="ava" style="--hue:${hueFor(a.id)}"></span>${esc(a.name)} <span class="badge ${running ? 'live' : ''}">${running ? 'at work' : 'available'}</span></h4>
+      ${a.description ? `<div class="desc">${esc(a.description)}</div>` : ''}
+      ${a.model ? `<div class="model">model: ${esc(a.model)}</div>` : ''}
+      ${a.tools.length ? `<div class="tools">${a.tools.map((t) => `<span class="tool-chip">${esc(t)}</span>`).join('')}</div>` : ''}
+      <button class="seat-btn ${seated ? 'on' : ''}" data-type="${esc(a.id)}">${seated ? '✕ free desk' : '🪑 seat'}</button>
+    </div>`
+  }).join('')
+  const activeHtml = extraActive.map((a) => `<div class="note team-member">
+    <h4><span class="ava" style="--hue:${hueFor(a.id)}"></span>${esc(agentLabel(a))} <span class="badge live">at work</span></h4>
+    <div class="desc">active subagent</div>
+    <div class="model">session: ${esc(a.id)}</div>
+  </div>`).join('')
+  body.innerHTML = configuredHtml || activeHtml
+    ? `<div class="team-list">${configuredHtml}${activeHtml}</div>`
+    : '<div class="empty">no subagents configured or active</div>'
 }
 
 const STATUS_LABEL = { draft: 'draft', 'in-progress': 'in progress', done: 'done' }
@@ -1059,8 +1089,6 @@ function connect() {
     applySnapshot({ ...data.collector, seats: data.seats, asks: data.asks })
     loadStories()
     loadNotes()
-    if (state.catalog.agents.length === 0) showOnboardModal()
-    else closeOnboardModal()
   })
   es.addEventListener('event', (e) => {
     const ev = JSON.parse(e.data)
@@ -1110,6 +1138,14 @@ $('#agentList').addEventListener('click', (e) => {
   const seated = seatByType(type)
   if (seated) freeSeat(seated.sessionKey)
   else seatAgent(type)
+})
+
+$('#teamBody').addEventListener('click', (e) => {
+  const btn = e.target.closest('.seat-btn')
+  if (!btn) return
+  const seated = seatByType(btn.dataset.type)
+  if (seated) freeSeat(seated.sessionKey)
+  else seatAgent(btn.dataset.type)
 })
 
 document.querySelector('.desk.maindesk').addEventListener('click', () => {
@@ -1538,7 +1574,7 @@ $('#catalogBtn').addEventListener('click', () => openCatalog('agents'))
 document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', () => setCatalogTab(b.dataset.tab)))
 $('#modalClose').addEventListener('click', closeCatalog)
 $('#modal .backdrop').addEventListener('click', closeCatalog)
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeNotes(); closeConsole(); closeGit(); closeCall() } })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeNotes(); closeConsole(); closeGit(); closeCall(); closeTeam() } })
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault()
@@ -1774,20 +1810,18 @@ $('#transcriptClose').addEventListener('click', closeTranscript)
 $('#transcriptModal .backdrop').addEventListener('click', closeTranscript)
 
 const cabinetEl = document.querySelector('.cabinet')
-const cabinetOpen = (open) => cabinetEl.classList.toggle('open', open)
 cabinetEl.querySelector('.d1').addEventListener('click', (e) => {
   e.stopPropagation()
-  cabinetOpen(!cabinetEl.classList.contains('open'))
+  openTeam()
 })
-cabinetEl.querySelector('.doc-tray').addEventListener('click', (e) => {
-  const row = e.target.closest('.frow')
-  if (!row) return
-  cabinetOpen(false)
-  openDoc(row.dataset.doc)
-})
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.cabinet')) cabinetOpen(false)
-})
+
+function openTeam() {
+  renderTeam()
+  $('#teamModal').classList.add('open')
+}
+function closeTeam() { $('#teamModal').classList.remove('open') }
+$('#teamClose').addEventListener('click', closeTeam)
+$('#teamModal .backdrop').addEventListener('click', closeTeam)
 
 const fileIcon = (name, type) => {
   if (type === 'dir') return '📁'
@@ -1869,7 +1903,6 @@ function closeFiles() { $('#filesModal').classList.remove('open') }
 
 cabinetEl.querySelector('.d2').addEventListener('click', (e) => {
   e.stopPropagation()
-  cabinetOpen(false)
   openFiles()
 })
 $('#filesClose').addEventListener('click', closeFiles)
@@ -1938,7 +1971,6 @@ function closeGit() { $('#gitModal').classList.remove('open') }
 
 cabinetEl.querySelector('.d3').addEventListener('click', (e) => {
   e.stopPropagation()
-  cabinetOpen(false)
   openGit()
 })
 $('#gitClose').addEventListener('click', closeGit)
@@ -2048,64 +2080,6 @@ async function clearStale() {
 }
 const clearStaleBtn = $('#clearStaleBtn')
 if (clearStaleBtn) clearStaleBtn.addEventListener('click', clearStale)
-
-async function checkOnboarding() {
-  try {
-    const res = await fetch(api('/api/docs-check'))
-    const d = await res.json()
-    const prdEl = $('#onboardPrd')
-    const archEl = $('#onboardArch')
-    prdEl.className = 'onboard-check ' + (d.prd.found ? 'found' : 'missing')
-    prdEl.querySelector('.oc-icon').textContent = d.prd.found ? '✅' : '❌'
-    archEl.className = 'onboard-check ' + (d.architecture.found ? 'found' : 'missing')
-    archEl.querySelector('.oc-icon').textContent = d.architecture.found ? '✅' : '❌'
-    const ready = d.prd.found && d.architecture.found
-    $('#onboardCreateBtn').disabled = !ready
-    $('#onboardHint').textContent = ready
-      ? 'Both docs are in place — ready to create the team.'
-      : 'Write these two documents first — in your terminal, or by seating the main agent from this office and asking it to draft them.'
-  } catch {}
-}
-
-function showOnboardModal() {
-  $('#onboardModal').classList.add('open')
-  $('#onboardStatus').textContent = ''
-  checkOnboarding()
-}
-function closeOnboardModal() { $('#onboardModal').classList.remove('open') }
-$('#onboardClose').addEventListener('click', closeOnboardModal)
-$('#onboardModal .backdrop').addEventListener('click', closeOnboardModal)
-
-async function createTeam() {
-  const btn = $('#onboardCreateBtn')
-  btn.disabled = true
-  $('#onboardStatus').textContent = 'seating the main agent…'
-  try {
-    if (!mainDeskOccupied()) await seatMain()
-    const seat = [...state.seats.values()].find((s) => s.desk === 'maindesk')
-    if (!seat) {
-      $('#onboardStatus').textContent = 'could not seat the main agent — is the main desk already occupied by a real terminal session?'
-      btn.disabled = false
-      return
-    }
-    openConsole(seat.sessionKey)
-    $('#onboardStatus').textContent = 'asking the agent to design the team…'
-    await fetch(api('/api/desk/send'), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        sessionKey: seat.sessionKey,
-        message: "Read docs/prd.md and docs/architecture.md now. Based on what they define, design and create the specialized subagent team this project needs — one .md file per role under .claude/agents/ (with proper frontmatter: name, description, tools, model), plus any complementary skill under .claude/skills/ if it would help (e.g. a shared workflow skill). Use the BMAD-lite pattern as a reference (analyst/architect/scrum-master/coder/reviewer), adapted to what this project's PRD and architecture actually call for — don't just copy the roles blindly. Tell me what you created when done."
-      })
-    })
-    $('#onboardStatus').textContent = 'requested — follow progress in the console. This modal reopens automatically until agents exist.'
-    setTimeout(closeOnboardModal, 1800)
-  } catch (e) {
-    $('#onboardStatus').textContent = 'failed: ' + String(e && e.message || e)
-    btn.disabled = false
-  }
-}
-$('#onboardCreateBtn').addEventListener('click', createTeam)
 
 function periodOf(now) {
   const h = now.getHours()

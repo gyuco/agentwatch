@@ -794,16 +794,6 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       return
     }
 
-    if (rest === '/api/docs-check' && req.method === 'GET') {
-      Promise.all([findDoc(ctx.project, 'prd.md'), findDoc(ctx.project, 'architecture.md')])
-        .then(([prd, architecture]) => json(res, 200, {
-          prd: { found: prd.found, path: prd.path || null },
-          architecture: { found: architecture.found, path: architecture.path || null }
-        }))
-        .catch((err) => json(res, 500, { error: String((err && err.message) || err) }))
-      return
-    }
-
     if (rest === '/api/transcript' && req.method === 'GET') {
       const agentId = String(url.searchParams.get('agent') || '')
       const agent = agentId && ctx.collector.agents.get(agentId)

@@ -92,6 +92,16 @@
     <div class="doc-body" id="transcriptBody"><div class="empty">…</div></div>
   </div>
 </div>
+<div id="teamModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel">
+    <div class="doc-head">
+      <span class="doc-title" id="teamTitle">🤖 team</span>
+      <span class="close-x" id="teamClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body" id="teamBody"><div class="empty">no subagents present</div></div>
+  </div>
+</div>
 <div id="filesModal">
   <div class="backdrop"></div>
   <div class="doc-panel">
@@ -199,25 +209,6 @@
     </div>
   </div>
 </div>
-<div id="onboardModal">
-  <div class="backdrop"></div>
-  <div class="doc-panel">
-    <div class="doc-head">
-      <span class="doc-title">🚀 set up this project's team</span>
-      <span class="close-x" id="onboardClose" title="Close">✕</span>
-    </div>
-    <div class="doc-body">
-      <p class="onboard-intro">No agents are installed yet in <code>.claude/agents/</code>. Before creating a specialized team, this project needs its planning docs:</p>
-      <div class="onboard-checks">
-        <div class="onboard-check" id="onboardPrd"><span class="oc-icon">…</span><span class="oc-label">docs/prd.md</span></div>
-        <div class="onboard-check" id="onboardArch"><span class="oc-icon">…</span><span class="oc-label">docs/architecture.md</span></div>
-      </div>
-      <p class="onboard-hint" id="onboardHint">Write these two documents first — in your terminal, or by seating the main agent from this office and asking it to draft them.</p>
-      <button class="onboard-create" id="onboardCreateBtn" disabled>🏗️ create team</button>
-      <div class="onboard-status" id="onboardStatus"></div>
-    </div>
-  </div>
-</div>
 <main>
   <div id="board">
     <div id="stagewrap">
@@ -250,7 +241,7 @@
           <div class="shot">☕ espresso!</div>
         </div>
         <div class="rug"></div>
-        <div class="cabinet"><div class="drawer d1" title="documents"></div><div class="drawer d2" title="project files"></div><div class="drawer d3" title="local git changes"></div><div class="potted"></div><div class="doc-tray"><button class="frow" data-doc="docs/prd.md">docs/prd.md</button><button class="frow" data-doc="CLAUDE.md">CLAUDE.md</button><button class="frow" data-doc="docs/architecture.md">docs/architecture.md</button></div></div>
+        <div class="cabinet"><div class="drawer d1" title="team"></div><div class="drawer d2" title="project files"></div><div class="drawer d3" title="local git changes"></div><div class="potted"></div></div>
         <div class="cooler" id="cooler" title="get some water 💧">
           <div class="tank"><div class="wlevel"></div><div class="bub b1"></div><div class="bub b2"></div><div class="bub b3"></div></div>
           <div class="cbody"></div>

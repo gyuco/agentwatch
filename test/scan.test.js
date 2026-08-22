@@ -15,7 +15,7 @@ function fixture() {
     [
       '---',
       'name: Analyst',
-      'description: Interviews the user and produces prd.md.',
+      'description: Interviews users and analyzes project needs.',
       'tools:',
       '- Read',
       '- Write',

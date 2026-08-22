@@ -220,7 +220,7 @@
   .mtab span { font-size: 10.5px; opacity: .9; }
   .tabpane { display: none; }
   .tabpane.active { display: block; }
-  #docModal, #usageModal, #tasksModal, #notesModal, #onboardModal, #filesModal, #gitModal, #transcriptModal {
+  #docModal, #usageModal, #tasksModal, #notesModal, #teamModal, #filesModal, #gitModal, #transcriptModal {
     position: fixed; inset: 0; display: none;
   }
   #docModal, #usageModal { z-index: 270; }
@@ -228,14 +228,14 @@
   #gitModal { z-index: 264; }
   #tasksModal { z-index: 250; }
   #notesModal { z-index: 255; }
-  #onboardModal { z-index: 260; }
+  #teamModal { z-index: 260; }
   #transcriptModal { z-index: 275; }
-  #docModal.open, #usageModal.open, #tasksModal.open, #notesModal.open, #onboardModal.open, #filesModal.open, #gitModal.open, #transcriptModal.open { display: block; }
-  #docModal .backdrop, #usageModal .backdrop, #tasksModal .backdrop, #notesModal .backdrop, #onboardModal .backdrop, #filesModal .backdrop, #gitModal .backdrop, #transcriptModal .backdrop {
+  #docModal.open, #usageModal.open, #tasksModal.open, #notesModal.open, #teamModal.open, #filesModal.open, #gitModal.open, #transcriptModal.open { display: block; }
+  #docModal .backdrop, #usageModal .backdrop, #tasksModal .backdrop, #notesModal .backdrop, #teamModal .backdrop, #filesModal .backdrop, #gitModal .backdrop, #transcriptModal .backdrop {
     position: absolute; inset: 0; background: rgba(47,36,24,.5);
     animation: fadein .2s ease-out;
   }
-  #docModal .doc-panel, #usageModal .doc-panel, #tasksModal .doc-panel, #notesModal .doc-panel, #onboardModal .doc-panel, #filesModal .doc-panel, #gitModal .doc-panel, #transcriptModal .doc-panel {
+  #docModal .doc-panel, #usageModal .doc-panel, #tasksModal .doc-panel, #notesModal .doc-panel, #teamModal .doc-panel, #filesModal .doc-panel, #gitModal .doc-panel, #transcriptModal .doc-panel {
     position: absolute; top: 4%; bottom: 4%; left: 50%; transform: translateX(-50%);
     width: min(780px, 92vw);
     background: var(--paper);
@@ -246,19 +246,18 @@
   }
   #filesModal .doc-panel { width: min(680px, 92vw); }
   #gitModal .doc-panel { width: min(680px, 92vw); }
-  #onboardModal .doc-panel { top: 50%; bottom: auto; transform: translate(-50%, -50%); max-height: 82vh; width: min(460px, 92vw); animation: docupCenter .25s cubic-bezier(.34,1.4,.5,1); }
+  #teamModal .doc-panel { width: min(680px, 92vw); }
   @keyframes docup { from { transform: translate(-50%, 24px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-  @keyframes docupCenter { from { transform: translate(-50%, calc(-50% + 16px)); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
-  #docModal .doc-head, #usageModal .doc-head, #tasksModal .doc-head, #notesModal .doc-head, #onboardModal .doc-head, #filesModal .doc-head, #gitModal .doc-head, #transcriptModal .doc-head {
+  #docModal .doc-head, #usageModal .doc-head, #tasksModal .doc-head, #notesModal .doc-head, #teamModal .doc-head, #filesModal .doc-head, #gitModal .doc-head, #transcriptModal .doc-head {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 14px; background: var(--paper-2);
     border-bottom: 3px solid var(--ink); flex: 0 0 auto;
   }
-  #docModal .doc-title, #usageModal .doc-title, #tasksModal .doc-title, #notesModal .doc-title, #onboardModal .doc-title, #filesModal .doc-title, #gitModal .doc-title, #transcriptModal .doc-title { font-family: var(--mono); font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #docModal .doc-title, #usageModal .doc-title, #tasksModal .doc-title, #notesModal .doc-title, #teamModal .doc-title, #filesModal .doc-title, #gitModal .doc-title, #transcriptModal .doc-title { font-family: var(--mono); font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #docModal .doc-tabs, #tasksModal .doc-tabs { display: flex; gap: 5px; margin-left: auto; }
   #docModal .dtab, #tasksModal .dtab { font-size: 11px; padding: 2px 11px; border-radius: 999px; box-shadow: 0 2px 0 var(--ink); }
   #docModal .dtab.active, #tasksModal .dtab.active { background: var(--accent); color: var(--paper); }
-  #docModal .close-x, #usageModal .close-x, #tasksModal .close-x, #notesModal .close-x, #onboardModal .close-x, #filesModal .close-x, #gitModal .close-x, #transcriptModal .close-x {
+  #docModal .close-x, #usageModal .close-x, #tasksModal .close-x, #notesModal .close-x, #teamModal .close-x, #filesModal .close-x, #gitModal .close-x, #transcriptModal .close-x {
     background: var(--accent); color: var(--paper);
     border: 2.5px solid var(--ink); border-radius: 999px;
     width: 30px; height: 30px; font-size: 15px; font-weight: 900;
@@ -266,8 +265,8 @@
     cursor: pointer; box-shadow: 0 2px 0 var(--ink);
     transition: transform .1s; flex: 0 0 auto;
   }
-  #docModal .close-x:hover, #usageModal .close-x:hover, #tasksModal .close-x:hover, #notesModal .close-x:hover, #onboardModal .close-x:hover, #filesModal .close-x:hover, #gitModal .close-x:hover, #transcriptModal .close-x:hover { transform: rotate(90deg); }
-  #docModal .doc-body, #usageModal .doc-body, #tasksModal .doc-body, #notesModal .doc-body, #onboardModal .doc-body, #gitModal .doc-body, #transcriptModal .doc-body { flex: 1 1 auto; overflow-y: auto; padding: 16px 20px; min-height: 0; }
+  #docModal .close-x:hover, #usageModal .close-x:hover, #tasksModal .close-x:hover, #notesModal .close-x:hover, #teamModal .close-x:hover, #filesModal .close-x:hover, #gitModal .close-x:hover, #transcriptModal .close-x:hover { transform: rotate(90deg); }
+  #docModal .doc-body, #usageModal .doc-body, #tasksModal .doc-body, #notesModal .doc-body, #teamModal .doc-body, #gitModal .doc-body, #transcriptModal .doc-body { flex: 1 1 auto; overflow-y: auto; padding: 16px 20px; min-height: 0; }
   .tr-msg { border: 2.5px solid var(--ink); border-radius: 10px; padding: 8px 12px; margin: 0 0 10px; background: var(--paper-2); }
   .tr-msg.role-assistant { background: #eef3fb; }
   .tr-msg.role-user, .tr-msg.role-tool_result { background: #fdf3dd; }
@@ -277,26 +276,8 @@
   .tr-block.thinking { color: rgba(47,36,24,.55); font-style: italic; }
   .tr-tool { font-family: var(--mono); font-size: 11.5px; background: #2f2418; color: #ffe9b8; border-radius: 6px; padding: 6px 9px; overflow-x: auto; }
   .tr-tool .tr-tool-name { color: #7fd0ff; font-weight: 800; }
-  .onboard-intro { font-size: 13.5px; line-height: 1.5; color: var(--text); margin: 0 0 14px; }
-  .onboard-checks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-  .onboard-check {
-    display: flex; align-items: center; gap: 10px;
-    border: 2.5px solid var(--ink); border-radius: 10px;
-    background: var(--paper-2); padding: 9px 12px;
-    font-family: var(--mono); font-size: 12.5px; font-weight: 700; color: var(--ink);
-  }
-  .onboard-check .oc-icon { font-size: 15px; flex: 0 0 auto; }
-  .onboard-check.found { background: #e8f5e6; }
-  .onboard-check.missing { background: #fdecea; }
-  .onboard-hint { font-size: 12px; color: var(--muted); margin: 0 0 16px; line-height: 1.5; }
-  .onboard-create {
-    width: 100%; padding: 11px; font-size: 14px; font-weight: 900;
-    background: var(--ok); color: var(--paper);
-    border: 2.5px solid var(--ink); border-radius: 10px;
-    box-shadow: 0 3px 0 var(--ink); cursor: pointer;
-  }
-  .onboard-create:disabled { background: var(--paper-2); color: var(--muted); cursor: not-allowed; box-shadow: none; }
-  .onboard-status { margin-top: 12px; font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
+  .team-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .team-member { margin: 0; }
   .doc-body .md { font-size: 13.5px; line-height: 1.6; color: var(--text); }
   .doc-body .md h1, .doc-body .md h2, .doc-body .md h3, .doc-body .md h4, .doc-body .md h5, .doc-body .md h6 { color: var(--ink); margin: 18px 0 8px; font-weight: 900; }
   .doc-body .md h1 { font-size: 21px; border-bottom: 3px solid var(--ink); padding-bottom: 5px; }
@@ -730,33 +711,13 @@
   .cabinet .drawer:nth-of-type(2) { top: 34px; }
   .cabinet .drawer:nth-of-type(3) { top: 61px; }
   .cabinet .drawer::after { content: ""; position: absolute; left: 50%; top: 7px; margin-left: -9px; width: 18px; height: 4px; background: var(--ink); border-radius: 2px; }
-  .cabinet .d1 { cursor: pointer; transition: transform .22s cubic-bezier(.34,1.4,.5,1); z-index: 4; }
+  .cabinet .d1 { cursor: pointer; transition: background .12s; z-index: 4; }
   .cabinet .d1:hover { background: #c9d2db; }
   .cabinet .d1::before, .cabinet .d2::before, .cabinet .d3::before { content: "▸"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 9px; color: var(--ink); z-index: 2; }
-  .cabinet.open .d1 { transform: translateX(70px); }
   .cabinet .d2 { cursor: pointer; transition: background .12s; z-index: 4; }
   .cabinet .d2:hover { background: #c9d2db; }
   .cabinet .d3 { cursor: pointer; transition: background .12s; z-index: 4; }
   .cabinet .d3:hover { background: #c9d2db; }
-  .cabinet .doc-tray {
-    position: absolute; left: calc(100% + 6px); top: 7px; width: 148px; z-index: 6;
-    background: linear-gradient(180deg, #bcc5cf, #aab3bd);
-    border: 3px solid var(--ink); border-radius: 0 8px 8px 0;
-    padding: 4px; display: flex; flex-direction: column; gap: 3px;
-    opacity: 0; transform: translateX(-8px); pointer-events: none;
-    transition: opacity .18s, transform .22s cubic-bezier(.34,1.4,.5,1);
-    box-shadow: 3px 3px 0 rgba(47,36,24,.3);
-  }
-  .cabinet.open .doc-tray { opacity: 1; transform: translateX(0); pointer-events: auto; }
-  .cabinet .frow {
-    border: 2px solid var(--ink); border-radius: 4px; background: var(--paper);
-    font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--ink);
-    padding: 2px 6px; cursor: pointer; text-align: left;
-    box-shadow: 0 1.5px 0 var(--ink);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .cabinet .frow:hover { background: #fff; }
-  .cabinet .frow:active { background: var(--main); color: var(--paper); }
   .cabinet .potted { position: absolute; left: 50%; top: -30px; margin-left: -14px; width: 28px; height: 30px; background: var(--accent); border: 3px solid var(--ink); border-radius: 4px 4px 9px 9px; }
   .cabinet .potted::before { content: ""; position: absolute; left: -4px; bottom: 18px; width: 18px; height: 26px; background: #5aa854; border: 3px solid var(--ink); border-radius: 60% 20% 60% 20%; transform: rotate(-12deg); }
   .cabinet .potted::after { content: ""; position: absolute; right: -4px; bottom: 18px; width: 18px; height: 26px; background: #4c9a48; border: 3px solid var(--ink); border-radius: 20% 60% 20% 60%; transform: rotate(12deg); }
@@ -1927,8 +1888,6 @@
     border-bottom-color: #182b2b;
   }
   body:not(.map) .close-x { background: #df624b; color: #fffaf0; border-color: #182b2b; }
-  body:not(.map) .onboard-check { background: #f6faf5; border-color: #182b2b; box-shadow: 0 2px 0 rgba(24,43,43,.12); }
-  body:not(.map) .onboard-create { background: #182b2b; color: #fffaf0; border-color: #182b2b; }
   body:not(.map) #console {
     border-color: #182b2b;
     background: #fffaf0;
