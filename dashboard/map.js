@@ -12,6 +12,8 @@ const ACTIVE_MS = 60000
 
 let lastData = null
 let entering = false
+let existingWorkflow = null
+const DEFAULT_WORKFLOW = { version: 1, paths: ['tasks'], statuses: ['todo', 'in-progress', 'done'], defaultStatus: 'todo' }
 
 function fitHall() {
   const wrap = document.querySelector('.hallwrap')
@@ -146,6 +148,67 @@ function openModal() {
 
 function closeModal() {
   $('#newModal').classList.remove('open')
+  resetWorkflowStep()
+}
+
+function resetWorkflowStep() {
+  existingWorkflow = null
+  $('#workflowSetup').hidden = true
+  $('#workflowConfig').value = ''
+  $('#newOk').textContent = 'create office'
+  $('#newHint').textContent = 'creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically'
+}
+
+function showExistingWorkflow(data) {
+  existingWorkflow = data
+  $('#workflowSetup').hidden = false
+  $('#workflowConfig').value = data.raw || JSON.stringify(data.config || DEFAULT_WORKFLOW, null, 2)
+  $('#newOk').textContent = 'save changes & create office'
+  $('#newHint').textContent = data.valid === false
+    ? `the existing configuration is invalid: ${data.error}. Fix it below or overwrite it.`
+    : 'review the existing workflow before creating the office'
+  $('#workflowConfig').focus()
+}
+
+function configFromEditor() {
+  try {
+    return JSON.parse($('#workflowConfig').value)
+  } catch (err) {
+    alert('invalid workflow JSON: ' + err.message)
+    return null
+  }
+}
+
+async function submitOffice(name, path, mode, config) {
+  const btn = $('#newOk')
+  const overwrite = $('#overwriteWorkflow')
+  btn.disabled = true
+  overwrite.disabled = true
+  try {
+    const res = await fetch('/api/office/new', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, path, workflow: { mode, config } })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      if (res.status === 409 && data.workflow) {
+        showExistingWorkflow(data.workflow)
+        return
+      }
+      alert(data.error || 'error')
+      return
+    }
+    closeModal()
+    $('#ofName').value = ''
+    $('#ofPath').value = ''
+    load()
+  } catch {
+    alert('could not create office')
+  } finally {
+    btn.disabled = false
+    overwrite.disabled = false
+  }
 }
 
 $('#newClose').addEventListener('click', closeModal)
@@ -182,22 +245,43 @@ $('#newOk').addEventListener('click', async () => {
   const name = $('#ofName').value.trim()
   const path = $('#ofPath').value.trim()
   if (!name || !path) return
-  const btn = $('#newOk')
-  btn.disabled = true
-  const res = await fetch('/api/office/new', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name, path })
-  })
-  btn.disabled = false
-  if (!res.ok) {
-    alert((await res.json()).error || 'error')
+  if (existingWorkflow) {
+    const config = configFromEditor()
+    if (config) await submitOffice(name, path, 'modify', config)
     return
   }
-  closeModal()
-  $('#ofName').value = ''
-  $('#ofPath').value = ''
-  load()
+  const btn = $('#newOk')
+  btn.disabled = true
+  try {
+    const res = await fetch('/api/office/workflow/inspect', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ path })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      if (res.status === 404) {
+        alert('the Agentwatch server is running an older build — restart the hub and try again')
+        return
+      }
+      alert(data.error || 'could not inspect workflow')
+      return
+    }
+    if (data.exists) showExistingWorkflow(data)
+    else await submitOffice(name, path, 'create', data.config || DEFAULT_WORKFLOW)
+  } catch {
+    alert('could not inspect workflow')
+  } finally {
+    btn.disabled = false
+  }
+})
+
+$('#overwriteWorkflow').addEventListener('click', async () => {
+  const name = $('#ofName').value.trim()
+  const path = $('#ofPath').value.trim()
+  if (!name || !path || !existingWorkflow) return
+  if (!confirm('overwrite agentwatch.tasks.json with the default workflow? Existing task files will not be changed.')) return
+  await submitOffice(name, path, 'overwrite', DEFAULT_WORKFLOW)
 })
 
 load()

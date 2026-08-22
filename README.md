@@ -19,7 +19,8 @@ agentwatch            # or: npx agentwatch
 ```
 
 It prints the hub URL and opens the browser on the projects page. New projects
-can be created from the page, or registered from the CLI:
+can be created from the page, or registered without workflow onboarding from
+the CLI:
 
 ```bash
 agentwatch office add path/to/project --name acme
@@ -30,6 +31,12 @@ When a project is added, agentwatch writes hooks into that project's
 Claude Code session in that project feeds the dashboard — including sessions
 started in a new terminal.
 
+Projects created from the web page also get a generic, non-Scrum work-item
+workflow: `agentwatch.tasks.json`, `.claude/agents/work-planner.md`,
+`.claude/skills/work-items/SKILL.md`, and the configured task directories. If
+the configuration already exists, the creation dialog requires an explicit
+choice to edit it or overwrite it; existing planner/skill files are preserved.
+
 ## What you see
 
 - **Catalog** (left): every agent (name, description, enabled tools) and every
@@ -39,7 +46,8 @@ started in a new terminal.
   duration, and the skills it has loaded.
 - **Skills rail**: skills marked **in use** while a subagent is loading them,
   with a use counter.
-- **Tasks**: `TaskCreated` / `TaskCompleted` chips from the task tool.
+- **Tasks**: live `TaskCreated` / `TaskCompleted` chips plus a read-only Markdown
+  Kanban whose paths and status columns come from `agentwatch.tasks.json`.
 - **Feed**: timestamped event timeline, filterable by main/subagents/skills/
   errors, searchable, per-agent on card click.
 
@@ -100,8 +108,29 @@ on `PreToolUse`:
    id belong to the main agent. Skill loads are detected from `Skill` tool
    calls and highlighted as skill-in-use.
 
-The CLI never edits committed files: `.claude/settings.local.json` is
-git-ignored and prior content is backed up to `.agentwatch/backups/`.
+Hook installation never edits committed files: `.claude/settings.local.json`
+is git-ignored and prior content is backed up to `.agentwatch/backups/`. The
+optional web onboarding does create the versionable workflow, agent, and skill
+files listed above.
+
+## Work-item workflow
+
+The board treats each Markdown file as a generic work item. Types and parent
+relationships are optional; Scrum concepts are not assumed. A minimal config:
+
+```json
+{
+  "version": 1,
+  "paths": ["tasks"],
+  "statuses": ["todo", "in-progress", "done"],
+  "defaultStatus": "todo"
+}
+```
+
+Status values are preserved and rendered as dynamic columns. Frontmatter may
+add `type`, `parent`, `priority`, or `lane`. Projects created before this
+feature remain readable through automatic discovery of `tasks`, `docs/tasks`,
+and `docs/stories`.
 
 ## Notes
 

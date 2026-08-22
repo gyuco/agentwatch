@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
+const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], taskBoard: { columns: [], tasks: [], sources: [] }, tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
 
 const TEAM_MANAGEMENT_PROMPT = `You are the main agent for this project. Help the user review and manage the project's AI collaboration setup without assuming any development methodology, document naming convention, or standard team structure.
 
@@ -919,17 +919,22 @@ function renderTeam() {
     : '<div class="empty">no subagents configured or active</div>'
 }
 
-const STATUS_LABEL = { draft: 'draft', 'in-progress': 'in progress', done: 'done' }
-const normStatus = (s) => (s === 'done' || s === 'in-progress' ? s : 'draft')
+function statusHue(status) {
+  let hash = 0
+  for (const ch of String(status)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
+  return hash % 360
+}
 
 function renderTasks() {
-  const st = state.stories || []
-  const count = (s) => st.filter((x) => normStatus(x.status) === s).length
-  $('#pbCounts').innerHTML =
-    `<div class="pb-row draft"><span class="pb-dot"></span>open<span class="pb-n">${count('draft')}</span></div>` +
-    `<div class="pb-row in-progress"><span class="pb-dot"></span>in progress<span class="pb-n">${count('in-progress')}</span></div>` +
-    `<div class="pb-row done"><span class="pb-dot"></span>done<span class="pb-n">${count('done')}</span></div>`
-  $('#tasksTitle').textContent = `📋 tasks · docs/stories (${st.length})`
+  const board = state.taskBoard || { columns: [], tasks: [], sources: [] }
+  $('#pbCounts').innerHTML = board.columns.map((col) =>
+    `<div class="pb-row" style="--status-hue:${statusHue(col.id)}"><span class="pb-dot"></span>${esc(col.label)}<span class="pb-n">${col.count}</span></div>`
+  ).join('') || '<div class="pb-row"><span class="pb-dot"></span>no work items<span class="pb-n">0</span></div>'
+  const source = board.sources.length ? board.sources.join(', ') : 'not configured'
+  $('#tasksTitle').textContent = `📋 work items · ${source} (${board.tasks.length})`
+  $('#tasksTabs').innerHTML = `<button class="dtab ${state.tasksFilter === 'all' ? 'active' : ''}" data-tab="all">all</button>` + board.columns.map((col) =>
+    `<button class="dtab ${state.tasksFilter === col.id ? 'active' : ''}" data-tab="${esc(col.id)}">${esc(col.label)}</button>`
+  ).join('')
 }
 
 function renderNotesPreview() {
@@ -941,18 +946,21 @@ function renderNotesPreview() {
 }
 
 function loadStories() {
-  fetch(api('/api/stories'))
+  fetch(api('/api/tasks-board'))
     .then((r) => r.json())
     .then((d) => {
-      state.stories = (d && d.stories) || []
+      state.taskBoard = d || { columns: [], tasks: [], sources: [] }
+      state.stories = state.taskBoard.tasks || []
+      if (state.tasksFilter !== 'all' && !state.taskBoard.columns.some((col) => col.id === state.tasksFilter)) state.tasksFilter = 'all'
       renderTasks()
       if ($('#tasksModal').classList.contains('open')) renderKanban()
     })
     .catch(() => {
       state.stories = []
+      state.taskBoard = { columns: [], tasks: [], sources: [] }
       renderTasks()
       if ($('#tasksModal').classList.contains('open')) {
-        $('#tasksBody').innerHTML = '<div class="doc-missing">could not read <b>docs/stories</b><span class="doc-searched">the office has no stories directory, or the server is unreachable</span></div>'
+        $('#tasksBody').innerHTML = '<div class="doc-missing">could not read work items<span class="doc-searched">check agentwatch.tasks.json or the server connection</span></div>'
       }
     })
 }
@@ -961,7 +969,7 @@ function openTasks(filter) {
   state.tasksFilter = filter || 'all'
   for (const b of document.querySelectorAll('#tasksTabs .dtab')) b.classList.toggle('active', b.dataset.tab === state.tasksFilter)
   $('#tasksModal').classList.add('open')
-  $('#tasksBody').innerHTML = '<div class="empty">reading docs/stories…</div>'
+  $('#tasksBody').innerHTML = '<div class="empty">reading work items…</div>'
   loadStories()
 }
 
@@ -969,19 +977,24 @@ function closeTasks() { $('#tasksModal').classList.remove('open') }
 
 function renderKanban() {
   const body = $('#tasksBody')
-  const st = state.stories || []
-  const cols = state.tasksFilter === 'all' ? ['draft', 'in-progress', 'done'] : [state.tasksFilter]
-  body.innerHTML = '<div class="kanban">' + cols.map((s) => {
-    const items = st.filter((x) => normStatus(x.status) === s)
-    const cards = items.map((x) => `<button class="kb-card ${s}" data-file="${esc(x.file)}">
+  const board = state.taskBoard || { columns: [], tasks: [], warnings: [] }
+  const cols = state.tasksFilter === 'all' ? board.columns : board.columns.filter((col) => col.id === state.tasksFilter)
+  if (!board.configured) {
+    body.innerHTML = '<div class="doc-missing">work items are not configured<span class="doc-searched">create agentwatch.tasks.json to enable the board</span></div>'
+    return
+  }
+  body.innerHTML = '<div class="kanban">' + cols.map((col) => {
+    const s = col.id
+    const items = board.tasks.filter((x) => x.status === s)
+    const cards = items.map((x) => `<button class="kb-card" style="--status-hue:${statusHue(s)}" data-file="${esc(x.path || x.file)}">
       <span class="kb-title">${esc(x.title)}</span>
-      <span class="kb-meta">${esc(x.file)}${x.lane ? ` · ${esc(x.lane)}` : ''}</span>
+      <span class="kb-meta">${esc(x.path || x.file)}${x.lane ? ` · ${esc(x.lane)}` : ''}${x.type ? ` · ${esc(x.type)}` : ''}</span>
     </button>`).join('')
-    return `<div class="kb-col ${s}">
-      <div class="kb-head"><span class="kb-dot"></span>${STATUS_LABEL[s]}<span class="kb-count">${items.length}</span></div>
+    return `<div class="kb-col" style="--status-hue:${statusHue(s)}">
+      <div class="kb-head"><span class="kb-dot"></span>${esc(col.label)}<span class="kb-count">${items.length}</span></div>
       <div class="kb-list">${cards || '<div class="kb-empty">no tasks</div>'}</div>
     </div>`
-  }).join('') + '</div>'
+  }).join('') + `</div>${board.warnings && board.warnings.length ? `<div class="doc-searched">${board.warnings.map(esc).join(' · ')}</div>` : ''}`
 }
 
 function render() {

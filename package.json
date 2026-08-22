@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/cli.js && node --check src/server.js && node --check src/collector.js && node --check src/scan.js && node --check src/settings.js && node --check src/paths.js && node --check src/run-hook.js && node --check src/ask-hook.js && node --check src/offices.js && node --check src/queue.js"
+    "check": "node --check src/cli.js && node --check src/server.js && node --check src/collector.js && node --check src/scan.js && node --check src/settings.js && node --check src/paths.js && node --check src/run-hook.js && node --check src/ask-hook.js && node --check src/offices.js && node --check src/queue.js && node --check src/workflow.js && node --check dashboard/map.js && node --check dashboard/app.js"
   },
   "keywords": [
     "claude-code",

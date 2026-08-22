@@ -83,7 +83,12 @@
         <button id="pickPath" type="button" title="Choose project directory" aria-label="Choose project directory">…</button>
       </div>
     </div>
-    <p class="nm-hint">creates the folder with .claude/ ready for agents — hooks are installed automatically</p>
+    <div id="workflowSetup" hidden>
+      <p class="nm-warning">⚠ <b>agentwatch.tasks.json already exists.</b> Edit and keep the existing workflow, or overwrite it with Agentwatch defaults.</p>
+      <div class="nm-field"><label for="workflowConfig">workflow configuration</label><textarea id="workflowConfig" spellcheck="false"></textarea></div>
+      <button id="overwriteWorkflow" type="button">overwrite with defaults</button>
+    </div>
+    <p class="nm-hint" id="newHint">creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically</p>
     <button id="newOk">create office</button>
   </div>
 </div>

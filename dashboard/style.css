@@ -1063,20 +1063,16 @@
   @keyframes fly { from { transform: translateX(0) rotate(-8deg); } to { transform: translateX(1060px) translateY(-70px) rotate(-24deg); opacity: 0; } }
   .kanban { display: flex; gap: 14px; align-items: flex-start; }
   .kb-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; border: 3px solid var(--ink); border-radius: 10px; background: var(--paper-2); overflow: hidden; }
-  .kb-col.draft { border-style: dashed; }
   .kb-head { display: flex; align-items: center; gap: 7px; padding: 8px 11px; font-size: 12px; font-weight: 900; color: var(--ink); background: var(--paper); border-bottom: 2.5px solid var(--ink); }
-  .kb-col.in-progress .kb-head { background: #fff4d6; }
-  .kb-col.done .kb-head { background: #e7f4e3; }
+  .kb-col .kb-head { background: hsl(var(--status-hue) 55% 91%); }
   .kb-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
-  .kb-col.in-progress .kb-dot { background: var(--accent); }
-  .kb-col.done .kb-dot { background: var(--ok); }
-  .kb-col.draft .kb-dot { background: transparent; }
+  .kb-col .kb-dot, .pb-row .pb-dot { background: hsl(var(--status-hue) 62% 58%); }
   .kb-count { margin-left: auto; font-family: var(--mono); font-size: 11px; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 0 8px; }
   .kb-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; min-height: 60px; }
   .kb-empty { font-size: 11.5px; color: var(--sub); text-align: center; padding: 14px 0; }
   .kb-card { text-align: left; display: flex; flex-direction: column; gap: 5px; padding: 9px 11px; border: 2.5px solid var(--ink); border-radius: 8px; background: var(--paper); box-shadow: 0 2px 0 var(--ink); cursor: pointer; transition: transform .08s, box-shadow .08s; font: inherit; color: inherit; }
   .kb-card:hover { transform: translateY(-1px) rotate(-.4deg); box-shadow: 0 4px 0 var(--ink); }
-  .kb-card.draft { border-style: dashed; }
+  .kb-card { border-left-color: hsl(var(--status-hue) 62% 48%); }
   .kb-card .kb-title { font-size: 12px; font-weight: 800; color: var(--ink); line-height: 1.35; }
   .kb-card .kb-meta { font-family: var(--mono); font-size: 9.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #tasksModal .doc-panel { width: min(1100px, 95vw); }
@@ -1711,6 +1707,12 @@
     box-shadow: 0 3px 0 rgba(24,43,43,.14);
   }
   .nm-field input:focus { outline: 3px solid rgba(72,164,160,.28); border-color: #276264; }
+  .nm-field textarea {
+    min-height: 150px; resize: vertical; font: 12px/1.45 var(--mono);
+    border: 2.5px solid #182b2b; border-radius: 8px; background: #fff; color: #182b2b;
+    padding: 9px 11px; box-shadow: 0 3px 0 rgba(24,43,43,.14);
+  }
+  .nm-field textarea:focus { outline: 3px solid rgba(72,164,160,.28); border-color: #276264; }
   .nm-path-row {
     display: grid; grid-template-columns: minmax(0, 1fr) 46px; gap: 8px;
     align-items: stretch;
@@ -1726,6 +1728,10 @@
   #pickPath:disabled { opacity: .62; cursor: wait; transform: none; }
   #pickPath.loading { animation: pulse 1s ease-in-out infinite; }
   .nm-hint { font-size: 11.5px; color: #607776; line-height: 1.45; }
+  #workflowSetup { display: flex; flex-direction: column; gap: 11px; }
+  #workflowSetup[hidden] { display: none; }
+  .nm-warning { padding: 9px 10px; border: 2px solid #b97824; border-radius: 8px; background: #fff1ca; color: #62430f; font-size: 11.5px; line-height: 1.45; }
+  #overwriteWorkflow { align-self: flex-start; background: #df624b; color: #fffaf0; border-color: #182b2b; }
   #newOk { align-self: flex-start; background: #182b2b; color: #fffaf0; border-color: #182b2b; }
   #newOk:disabled { opacity: .5; cursor: wait; }
 

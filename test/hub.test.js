@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { startHubServer } from '../src/server.js'
 import { addOffice, loadOffices } from '../src/offices.js'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { request } from 'node:http'
@@ -116,6 +116,9 @@ test('hub: map at /, offices listing, per-office dashboard and APIs, office crea
     body: { name: 'Ufficio C', path: join(home, 'office-c') }
   })
   assert.equal(created.json().id, 'ufficio-c')
+  assert.ok(existsSync(join(home, 'office-c', 'agentwatch.tasks.json')))
+  assert.ok(existsSync(join(home, 'office-c', '.claude', 'agents', 'work-planner.md')))
+  assert.ok(existsSync(join(home, 'office-c', '.claude', 'skills', 'work-items', 'SKILL.md')))
   assert.equal(loadOffices().length, 3)
 
   const removed = await httpJson(port, '/api/office/remove', {
@@ -143,6 +146,33 @@ test('hub: office/new with missing path returns 400', async (t) => {
   t.after(() => app.close())
   const res = await httpJson(app.port(), '/api/office/new', { method: 'POST', body: {} })
   assert.equal(res.status, 400)
+})
+
+test('hub: existing workflow requires modify or overwrite choice', async (t) => {
+  fixture()
+  const root = join(process.env.AGENTWATCH_HOME, 'existing')
+  const existing = { version: 1, paths: ['work'], statuses: ['open', 'closed'], defaultStatus: 'open', custom: 'keep' }
+  mkdirSync(root, { recursive: true })
+  writeFileSync(join(root, 'agentwatch.tasks.json'), JSON.stringify(existing, null, 2) + '\n')
+  const app = startHubServer({ hooksEnabled: false })
+  await app.listen()
+  t.after(() => app.close())
+
+  const inspected = await httpJson(app.port(), '/api/office/workflow/inspect', { method: 'POST', body: { path: root } })
+  assert.equal(inspected.status, 200)
+  assert.equal(inspected.json().exists, true)
+  assert.equal(inspected.json().config.custom, 'keep')
+
+  const conflict = await httpJson(app.port(), '/api/office/new', { method: 'POST', body: { name: 'Existing', path: root } })
+  assert.equal(conflict.status, 409)
+  assert.equal(loadOffices().length, 0)
+
+  const modified = await httpJson(app.port(), '/api/office/new', {
+    method: 'POST',
+    body: { name: 'Existing', path: root, workflow: { mode: 'modify', config: { ...existing, statuses: ['open', 'review', 'closed'] } } }
+  })
+  assert.equal(modified.status, 200)
+  assert.deepEqual(JSON.parse(readFileSync(join(root, 'agentwatch.tasks.json'), 'utf8')).statuses, ['open', 'review', 'closed'])
 })
 
 test('hub: ask created at the root routes to the office by project and is answered', async (t) => {

@@ -12,6 +12,7 @@ import { attachQueueWatcher } from './queue.js'
 import { queueFile, portFile, notesFile } from './paths.js'
 import { loadOffices, addOffice, removeOffice } from './offices.js'
 import { installHooks, uninstallHooks, installedHooks } from './settings.js'
+import { inspectWorkflow, readTaskBoard, setupWorkflow } from './workflow.js'
 
 const readAsset = (name) => {
   const here = dirname(fileURLToPath(import.meta.url))
@@ -217,40 +218,6 @@ async function listDir(project, parts) {
     a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1
   )
   return { path: parts.join('/') || '.', parent: parts.slice(0, -1).join('/') || '', entries }
-}
-
-async function listStories(project) {
-  const dir = join(project, 'docs', 'stories')
-  let files
-  try {
-    files = await readdir(dir)
-  } catch {
-    return []
-  }
-  const stories = []
-  for (const name of files) {
-    if (!name.endsWith('.md')) continue
-    if (name === '_TEMPLATE.md' || name === 'README.md') continue
-    const full = join(dir, name)
-    let src
-    try {
-      const st = await stat(full)
-      if (st.size > MAX_DOC_BYTES) continue
-      src = await readFile(full, 'utf8')
-    } catch {
-      continue
-    }
-    const title = src.match(/^#\s+(.+)$/m)
-    const status = src.match(/^status:\s*(\S+)/m)
-    const lane = src.match(/^lane:\s*(\S+)/m)
-    stories.push({
-      file: name,
-      title: title ? title[1].replace(/^Story:\s*/i, '') : name.replace(/\.md$/, ''),
-      status: status ? status[1] : 'unknown',
-      lane: lane ? lane[1] : ''
-    })
-  }
-  return stories.sort((a, b) => a.file.localeCompare(b.file))
 }
 
 async function findDoc(project, name) {
@@ -820,9 +787,11 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       return
     }
 
-    if (rest === '/api/stories') {
-      listStories(ctx.project)
-        .then((stories) => json(res, 200, { stories }))
+    if (rest === '/api/tasks-board' || rest === '/api/stories') {
+      readTaskBoard(ctx.project)
+        .then((board) => json(res, 200, rest === '/api/stories'
+          ? { stories: board.tasks.map((task) => ({ file: basename(task.path), title: task.title, status: task.status, lane: task.lane })) }
+          : board))
         .catch((err) => json(res, 500, { error: String((err && err.message) || err) }))
       return
     }
@@ -1035,6 +1004,19 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
           })
         return
       }
+      if (pathname === '/api/office/workflow/inspect' && req.method === 'POST') {
+        readJson(req)
+          .then((body) => {
+            const path = String(body.path || '').trim()
+            if (!path) {
+              json(res, 400, { error: 'path required' })
+              return
+            }
+            json(res, 200, inspectWorkflow(path))
+          })
+          .catch(() => json(res, 400, { error: 'invalid json' }))
+        return
+      }
       if (pathname === '/api/office/new' && req.method === 'POST') {
         readJson(req)
           .then((body) => {
@@ -1045,15 +1027,33 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
               return
             }
             try {
+              if (loadOffices().some((office) => resolve(office.path) === resolve(path))) {
+                json(res, 400, { error: `office already registered: ${resolve(path)}` })
+                return
+              }
+              const inspected = inspectWorkflow(path)
+              const workflow = body.workflow && typeof body.workflow === 'object' ? body.workflow : {}
+              if (inspected.exists && !workflow.mode) {
+                json(res, 409, { error: 'workflow choice required', workflow: inspected })
+                return
+              }
+              const setup = setupWorkflow(path, {
+                mode: String(workflow.mode || 'create'),
+                config: workflow.config || inspected.config
+              })
               const entry = addOffice({ name, path, runnerPath: hooksEnabled ? runnerPath : null, askRunnerPath: hooksEnabled ? askRunnerPath : null })
               const ctx = buildContext(entry)
               contexts.set(entry.id, ctx)
               try {
                 writeFileSync(portFile(ctx.project), String(port))
               } catch {}
-              json(res, 200, officeSummary(ctx))
+              json(res, 200, { ...officeSummary(ctx), workflow: setup })
             } catch (err) {
-              json(res, 400, { error: String((err && err.message) || err) })
+              const conflict = err && err.code === 'WORKFLOW_EXISTS'
+              json(res, conflict ? 409 : 400, {
+                error: String((err && err.message) || err),
+                ...(conflict ? { workflow: inspectWorkflow(path) } : {})
+              })
             }
           })
           .catch(() => json(res, 400, { error: 'invalid json' }))
