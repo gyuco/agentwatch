@@ -13,6 +13,7 @@ import { queueFile, portFile, notesFile } from './paths.js'
 import { loadOffices, addOffice, removeOffice } from './offices.js'
 import { installHooks, uninstallHooks, installedHooks } from './settings.js'
 import { inspectWorkflow, readTaskBoard, setupWorkflow } from './workflow.js'
+import { inspectCatalog, installCatalogSelection } from './catalog.js'
 
 const readAsset = (name) => {
   const here = dirname(fileURLToPath(import.meta.url))
@@ -1012,7 +1013,7 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
               json(res, 400, { error: 'path required' })
               return
             }
-            json(res, 200, inspectWorkflow(path))
+            json(res, 200, { ...inspectWorkflow(path), onboarding: inspectCatalog(path) })
           })
           .catch(() => json(res, 400, { error: 'invalid json' }))
         return
@@ -1039,20 +1040,22 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
               }
               const setup = setupWorkflow(path, {
                 mode: String(workflow.mode || 'create'),
-                config: workflow.config || inspected.config
+                config: workflow.config || inspected.config,
+                scaffold: !body.catalog
               })
+              const catalogSetup = body.catalog ? installCatalogSelection(path, body.catalog) : null
               const entry = addOffice({ name, path, runnerPath: hooksEnabled ? runnerPath : null, askRunnerPath: hooksEnabled ? askRunnerPath : null })
               const ctx = buildContext(entry)
               contexts.set(entry.id, ctx)
               try {
                 writeFileSync(portFile(ctx.project), String(port))
               } catch {}
-              json(res, 200, { ...officeSummary(ctx), workflow: setup })
+              json(res, 200, { ...officeSummary(ctx), workflow: setup, catalog: catalogSetup })
             } catch (err) {
               const conflict = err && err.code === 'WORKFLOW_EXISTS'
               json(res, conflict ? 409 : 400, {
                 error: String((err && err.message) || err),
-                ...(conflict ? { workflow: inspectWorkflow(path) } : {})
+                ...(conflict ? { workflow: { ...inspectWorkflow(path), onboarding: inspectCatalog(path) } } : {})
               })
             }
           })

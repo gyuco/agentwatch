@@ -36,6 +36,8 @@ workflow: `agentwatch.tasks.json`, `.claude/agents/work-planner.md`,
 `.claude/skills/work-items/SKILL.md`, and the configured task directories. If
 the configuration already exists, the creation dialog requires an explicit
 choice to edit it or overwrite it; existing planner/skill files are preserved.
+The same dialog proposes a bundled setup catalog and lets you review every
+agent, skill, MCP suggestion, and workflow before anything is installed.
 
 ## What you see
 
@@ -131,6 +133,20 @@ Status values are preserved and rendered as dynamic columns. Frontmatter may
 add `type`, `parent`, `priority`, or `lane`. Projects created before this
 feature remain readable through automatic discovery of `tasks`, `docs/tasks`,
 and `docs/stories`.
+
+## Onboarding catalog
+
+Agentwatch ships a local, versioned catalog in `catalog/`. The first catalog
+includes `Minimal` and `Development` packs, six agents, three skills, two
+generic workflows, and a GitHub MCP suggestion. Recommendations are
+deterministic: repositories with common software markers receive the
+Development proposal; other folders receive Minimal.
+
+The onboarding dialog supports a custom selection. Existing target files are
+reported and preserved. MCP entries are proposals only and never create
+credentials or connections automatically. Installed catalog versions are
+recorded in the versionable `agentwatch.setup.json` file so later updates can
+distinguish Agentwatch-managed content from project-owned files.
 
 ## Notes
 

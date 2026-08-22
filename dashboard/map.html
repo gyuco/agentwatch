@@ -84,9 +84,24 @@
       </div>
     </div>
     <div id="workflowSetup" hidden>
-      <p class="nm-warning">⚠ <b>agentwatch.tasks.json already exists.</b> Edit and keep the existing workflow, or overwrite it with Agentwatch defaults.</p>
+      <p class="nm-warning" id="workflowNotice"></p>
+      <div class="nm-field">
+        <label for="setupPack">setup pack</label>
+        <select id="setupPack"></select>
+        <span class="nm-detail" id="packDescription"></span>
+      </div>
+      <div class="catalog-grid">
+        <fieldset><legend>agents</legend><div id="catalogAgents"></div></fieldset>
+        <fieldset><legend>skills</legend><div id="catalogSkills"></div></fieldset>
+        <fieldset><legend>MCP</legend><div id="catalogMcps"></div></fieldset>
+      </div>
+      <div class="nm-field">
+        <label for="catalogWorkflow">workflow</label>
+        <select id="catalogWorkflow"></select>
+        <span class="nm-detail" id="workflowDescription"></span>
+      </div>
       <div class="nm-field"><label for="workflowConfig">workflow configuration</label><textarea id="workflowConfig" spellcheck="false"></textarea></div>
-      <button id="overwriteWorkflow" type="button">overwrite with defaults</button>
+      <button id="overwriteWorkflow" type="button">overwrite existing config with selected workflow</button>
     </div>
     <p class="nm-hint" id="newHint">creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically</p>
     <button id="newOk">create office</button>

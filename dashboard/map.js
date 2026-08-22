@@ -12,7 +12,8 @@ const ACTIVE_MS = 60000
 
 let lastData = null
 let entering = false
-let existingWorkflow = null
+let workflowInspection = null
+let catalogData = null
 const DEFAULT_WORKFLOW = { version: 1, paths: ['tasks'], statuses: ['todo', 'in-progress', 'done'], defaultStatus: 'todo' }
 
 function fitHall() {
@@ -152,22 +153,96 @@ function closeModal() {
 }
 
 function resetWorkflowStep() {
-  existingWorkflow = null
+  workflowInspection = null
+  catalogData = null
   $('#workflowSetup').hidden = true
   $('#workflowConfig').value = ''
   $('#newOk').textContent = 'create office'
   $('#newHint').textContent = 'creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically'
+  $('#overwriteWorkflow').hidden = true
 }
 
-function showExistingWorkflow(data) {
-  existingWorkflow = data
+function workflowConfig(id) {
+  const workflow = catalogData && catalogData.workflows.find((item) => item.id === id)
+  return workflow ? { version: 1, paths: workflow.paths, statuses: workflow.statuses, defaultStatus: workflow.defaultStatus } : DEFAULT_WORKFLOW
+}
+
+function renderCatalogGroup(target, kind, items, selected, conflicts) {
+  const occupied = new Set(conflicts.filter((item) => item.type === kind.slice(0, -1)).map((item) => item.id))
+  $(target).innerHTML = items.map((item) => `<label class="catalog-option ${occupied.has(item.id) ? 'conflict' : ''}">
+    <input type="checkbox" data-kind="${kind}" value="${esc(item.id)}" ${selected.includes(item.id) ? 'checked' : ''}>
+    <span>${esc(item.name)}${occupied.has(item.id) ? ' · existing' : ''}<small>${esc(item.description)}${item.installable === false ? ` · ${esc(item.note)}` : ''}</small></span>
+  </label>`).join('') || '<span class="nm-detail">none available</span>'
+}
+
+function applyPack(packId, updateConfig = false) {
+  if (!catalogData) return
+  const pack = catalogData.packs.find((item) => item.id === packId)
+  $('#packDescription').textContent = pack ? pack.description : 'Choose individual catalog items.'
+  if (!pack) return
+  const selected = pack
+  for (const input of document.querySelectorAll('#workflowSetup input[data-kind]')) {
+    input.checked = (selected[input.dataset.kind] || []).includes(input.value)
+  }
+  if (pack) $('#catalogWorkflow').value = pack.workflow
+  updateWorkflowDescription()
+  if (updateConfig) $('#workflowConfig').value = JSON.stringify(workflowConfig($('#catalogWorkflow').value), null, 2)
+}
+
+function updateWorkflowDescription() {
+  const workflow = catalogData && catalogData.workflows.find((item) => item.id === $('#catalogWorkflow').value)
+  $('#workflowDescription').textContent = workflow ? workflow.description : ''
+}
+
+function catalogSelection() {
+  const selected = (kind) => [...document.querySelectorAll(`#workflowSetup input[data-kind="${kind}"]:checked`)].map((input) => input.value)
+  return {
+    pack: $('#setupPack').value,
+    agents: selected('agents'),
+    skills: selected('skills'),
+    mcps: selected('mcps'),
+    workflow: $('#catalogWorkflow').value
+  }
+}
+
+function showWorkflowSetup(data) {
+  workflowInspection = data
+  const onboarding = data.onboarding || {}
+  catalogData = onboarding.catalog || { packs: [], agents: [], skills: [], mcps: [], workflows: [] }
+  const preferredPack = (onboarding.setup && onboarding.setup.pack) || onboarding.recommendedPack || 'minimal'
+  const packIds = new Set(catalogData.packs.map((item) => item.id))
+  $('#setupPack').innerHTML = catalogData.packs.map((pack) =>
+    `<option value="${esc(pack.id)}" ${pack.id === preferredPack ? 'selected' : ''}>${esc(pack.name)}${pack.id === onboarding.recommendedPack ? ' · recommended' : ''}</option>`
+  ).join('') + `<option value="custom" ${!packIds.has(preferredPack) ? 'selected' : ''}>Custom</option>`
+  $('#catalogWorkflow').innerHTML = catalogData.workflows.map((workflow) => `<option value="${esc(workflow.id)}">${esc(workflow.name)}</option>`).join('')
+  const previous = onboarding.setup && onboarding.setup.installed
+  const pack = catalogData.packs.find((item) => item.id === preferredPack) || {
+    id: 'custom', name: 'Custom', description: 'Previously selected project components.',
+    agents: Object.keys((previous && previous.agents) || {}),
+    skills: Object.keys((previous && previous.skills) || {}),
+    mcps: Object.keys((previous && previous.mcps) || {}),
+    workflow: (onboarding.setup && onboarding.setup.workflow) || 'simple-tasks'
+  }
+  renderCatalogGroup('#catalogAgents', 'agents', catalogData.agents, pack.agents, onboarding.conflicts || [])
+  renderCatalogGroup('#catalogSkills', 'skills', catalogData.skills, pack.skills, onboarding.conflicts || [])
+  renderCatalogGroup('#catalogMcps', 'mcps', catalogData.mcps, pack.mcps, onboarding.conflicts || [])
+  if (pack.id === 'custom') {
+    $('#setupPack').value = 'custom'
+    $('#catalogWorkflow').value = pack.workflow
+    $('#packDescription').textContent = pack.description
+    updateWorkflowDescription()
+    if (!data.exists) $('#workflowConfig').value = JSON.stringify(workflowConfig(pack.workflow), null, 2)
+  } else applyPack(pack.id, !data.exists)
   $('#workflowSetup').hidden = false
-  $('#workflowConfig').value = data.raw || JSON.stringify(data.config || DEFAULT_WORKFLOW, null, 2)
-  $('#newOk').textContent = 'save changes & create office'
+  if (data.exists) $('#workflowConfig').value = data.raw || JSON.stringify(data.config || DEFAULT_WORKFLOW, null, 2)
+  $('#workflowNotice').innerHTML = data.exists
+    ? '⚠ <b>agentwatch.tasks.json already exists.</b> Edit it below or overwrite it with the selected workflow.'
+    : `✓ <b>${esc(pack.name)} setup proposed.</b> Review the components before installing.`
+  $('#overwriteWorkflow').hidden = !data.exists
+  $('#newOk').textContent = data.exists ? 'save changes & create office' : 'install setup & create office'
   $('#newHint').textContent = data.valid === false
     ? `the existing configuration is invalid: ${data.error}. Fix it below or overwrite it.`
-    : 'review the existing workflow before creating the office'
-  $('#workflowConfig').focus()
+    : 'existing catalog files are preserved; MCP connections always require separate manual setup'
 }
 
 function configFromEditor() {
@@ -188,12 +263,12 @@ async function submitOffice(name, path, mode, config) {
     const res = await fetch('/api/office/new', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name, path, workflow: { mode, config } })
+      body: JSON.stringify({ name, path, workflow: { mode, config }, catalog: catalogSelection() })
     })
     const data = await res.json()
     if (!res.ok) {
       if (res.status === 409 && data.workflow) {
-        showExistingWorkflow(data.workflow)
+        showWorkflowSetup(data.workflow)
         return
       }
       alert(data.error || 'error')
@@ -217,6 +292,9 @@ $('#newModal').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal()
 })
 $('#reload').addEventListener('click', load)
+$('#ofPath').addEventListener('input', () => {
+  if (workflowInspection) resetWorkflowStep()
+})
 
 $('#pickPath').addEventListener('click', async () => {
   const btn = $('#pickPath')
@@ -230,6 +308,7 @@ $('#pickPath').addEventListener('click', async () => {
       return
     }
     if (data.path) {
+      if ($('#ofPath').value !== data.path && workflowInspection) resetWorkflowStep()
       $('#ofPath').value = data.path
       $('#ofPath').focus()
     }
@@ -245,9 +324,9 @@ $('#newOk').addEventListener('click', async () => {
   const name = $('#ofName').value.trim()
   const path = $('#ofPath').value.trim()
   if (!name || !path) return
-  if (existingWorkflow) {
+  if (workflowInspection) {
     const config = configFromEditor()
-    if (config) await submitOffice(name, path, 'modify', config)
+    if (config) await submitOffice(name, path, workflowInspection.exists ? 'modify' : 'create', config)
     return
   }
   const btn = $('#newOk')
@@ -267,8 +346,7 @@ $('#newOk').addEventListener('click', async () => {
       alert(data.error || 'could not inspect workflow')
       return
     }
-    if (data.exists) showExistingWorkflow(data)
-    else await submitOffice(name, path, 'create', data.config || DEFAULT_WORKFLOW)
+    showWorkflowSetup(data)
   } catch {
     alert('could not inspect workflow')
   } finally {
@@ -279,9 +357,20 @@ $('#newOk').addEventListener('click', async () => {
 $('#overwriteWorkflow').addEventListener('click', async () => {
   const name = $('#ofName').value.trim()
   const path = $('#ofPath').value.trim()
-  if (!name || !path || !existingWorkflow) return
-  if (!confirm('overwrite agentwatch.tasks.json with the default workflow? Existing task files will not be changed.')) return
-  await submitOffice(name, path, 'overwrite', DEFAULT_WORKFLOW)
+  if (!name || !path || !workflowInspection || !workflowInspection.exists) return
+  if (!confirm('overwrite agentwatch.tasks.json with the selected workflow? Existing task files will not be changed.')) return
+  await submitOffice(name, path, 'overwrite', workflowConfig($('#catalogWorkflow').value))
+})
+
+$('#setupPack').addEventListener('change', () => applyPack($('#setupPack').value, !workflowInspection?.exists))
+$('#catalogWorkflow').addEventListener('change', () => {
+  updateWorkflowDescription()
+  if (!workflowInspection?.exists) $('#workflowConfig').value = JSON.stringify(workflowConfig($('#catalogWorkflow').value), null, 2)
+})
+$('#workflowSetup').addEventListener('change', (event) => {
+  if (!event.target.matches('input[data-kind]')) return
+  $('#setupPack').value = 'custom'
+  $('#packDescription').textContent = 'Choose individual catalog items.'
 })
 
 load()

@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "agents": [
+    {
+      "id": "work-planner",
+      "version": "1.0.0",
+      "name": "Work planner",
+      "description": "Plans and maintains generic Markdown work items without assuming Scrum.",
+      "tags": ["planning", "tasks"],
+      "source": "agents/work-planner.md",
+      "target": ".claude/agents/work-planner.md",
+      "requires": { "skills": ["work-items"] }
+    },
+    {
+      "id": "analyst",
+      "version": "1.0.0",
+      "name": "Analyst",
+      "description": "Clarifies requirements, constraints, acceptance criteria, and open questions before implementation.",
+      "tags": ["development", "analysis"],
+      "source": "agents/analyst.md",
+      "target": ".claude/agents/analyst.md",
+      "requires": { "skills": ["work-items"] }
+    },
+    {
+      "id": "architect",
+      "version": "1.0.0",
+      "name": "Architect",
+      "description": "Designs proportionate technical solutions and records consequential tradeoffs.",
+      "tags": ["development", "architecture"],
+      "source": "agents/architect.md",
+      "target": ".claude/agents/architect.md",
+      "requires": { "skills": [] }
+    },
+    {
+      "id": "coder",
+      "version": "1.0.0",
+      "name": "Coder",
+      "description": "Implements scoped changes and verifies them using project conventions.",
+      "tags": ["development", "implementation"],
+      "source": "agents/coder.md",
+      "target": ".claude/agents/coder.md",
+      "requires": { "skills": ["test-strategy"] }
+    },
+    {
+      "id": "code-reviewer",
+      "version": "1.0.0",
+      "name": "Code reviewer",
+      "description": "Reviews changes for defects, regressions, and maintainability risks.",
+      "tags": ["development", "quality"],
+      "source": "agents/code-reviewer.md",
+      "target": ".claude/agents/code-reviewer.md",
+      "requires": { "skills": [] }
+    },
+    {
+      "id": "qa-engineer",
+      "version": "1.0.0",
+      "name": "QA engineer",
+      "description": "Designs focused test coverage and verifies user-visible behavior.",
+      "tags": ["testing", "quality"],
+      "source": "agents/qa-engineer.md",
+      "target": ".claude/agents/qa-engineer.md",
+      "requires": { "skills": ["test-strategy"] }
+    }
+  ],
+  "skills": [
+    {
+      "id": "work-items",
+      "version": "1.0.0",
+      "name": "Work items",
+      "description": "Reads and writes Agentwatch Markdown work items using the project workflow.",
+      "tags": ["planning", "tasks"],
+      "source": "skills/work-items/SKILL.md",
+      "target": ".claude/skills/work-items/SKILL.md"
+    },
+    {
+      "id": "test-strategy",
+      "version": "1.0.0",
+      "name": "Test strategy",
+      "description": "Chooses proportional tests from risk, behavior, and existing project conventions.",
+      "tags": ["testing", "quality"],
+      "source": "skills/test-strategy/SKILL.md",
+      "target": ".claude/skills/test-strategy/SKILL.md"
+    },
+    {
+      "id": "release-notes",
+      "version": "1.0.0",
+      "name": "Release notes",
+      "description": "Produces concise release notes from verified repository changes.",
+      "tags": ["release", "documentation"],
+      "source": "skills/release-notes/SKILL.md",
+      "target": ".claude/skills/release-notes/SKILL.md"
+    }
+  ],
+  "mcps": [
+    {
+      "id": "github",
+      "version": "1.0.0",
+      "name": "GitHub MCP",
+      "description": "Adds repository, issue, and pull-request context.",
+      "tags": ["development", "integration"],
+      "installable": false,
+      "note": "Manual connection required; Agentwatch never creates credentials."
+    }
+  ],
+  "workflows": [
+    {
+      "id": "simple-tasks",
+      "version": "1.0.0",
+      "name": "Simple tasks",
+      "description": "A lightweight generic flow for independent work items.",
+      "paths": ["tasks"],
+      "statuses": ["todo", "in-progress", "done"],
+      "defaultStatus": "todo"
+    },
+    {
+      "id": "continuous-delivery",
+      "version": "1.0.0",
+      "name": "Continuous delivery",
+      "description": "A review-oriented flow for software delivered continuously.",
+      "paths": ["tasks"],
+      "statuses": ["backlog", "ready", "in-progress", "review", "done"],
+      "defaultStatus": "backlog"
+    }
+  ],
+  "packs": [
+    {
+      "id": "minimal",
+      "version": "1.0.0",
+      "name": "Minimal",
+      "description": "Generic planning with one agent and one skill.",
+      "agents": ["work-planner"],
+      "skills": ["work-items"],
+      "mcps": [],
+      "workflow": "simple-tasks"
+    },
+    {
+      "id": "development",
+      "version": "1.0.0",
+      "name": "Development",
+      "description": "Planning, review, testing, and release support for software projects.",
+      "agents": ["work-planner", "analyst", "architect", "coder", "code-reviewer", "qa-engineer"],
+      "skills": ["work-items", "test-strategy", "release-notes"],
+      "mcps": [],
+      "workflow": "continuous-delivery"
+    }
+  ]
+}

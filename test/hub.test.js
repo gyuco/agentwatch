@@ -162,6 +162,8 @@ test('hub: existing workflow requires modify or overwrite choice', async (t) => 
   assert.equal(inspected.status, 200)
   assert.equal(inspected.json().exists, true)
   assert.equal(inspected.json().config.custom, 'keep')
+  assert.equal(inspected.json().onboarding.recommendedPack, 'minimal')
+  assert.ok(inspected.json().onboarding.catalog.packs.some((pack) => pack.id === 'development'))
 
   const conflict = await httpJson(app.port(), '/api/office/new', { method: 'POST', body: { name: 'Existing', path: root } })
   assert.equal(conflict.status, 409)
@@ -173,6 +175,29 @@ test('hub: existing workflow requires modify or overwrite choice', async (t) => 
   })
   assert.equal(modified.status, 200)
   assert.deepEqual(JSON.parse(readFileSync(join(root, 'agentwatch.tasks.json'), 'utf8')).statuses, ['open', 'review', 'closed'])
+})
+
+test('hub: office onboarding installs a selected catalog pack', async (t) => {
+  fixture()
+  const root = join(process.env.AGENTWATCH_HOME, 'catalog-office')
+  mkdirSync(root, { recursive: true })
+  writeFileSync(join(root, 'package.json'), '{}\n')
+  const app = startHubServer({ hooksEnabled: false })
+  await app.listen()
+  t.after(() => app.close())
+
+  const inspect = await httpJson(app.port(), '/api/office/workflow/inspect', { method: 'POST', body: { path: root } })
+  assert.equal(inspect.json().onboarding.recommendedPack, 'development')
+  const development = inspect.json().onboarding.catalog.workflows.find((workflow) => workflow.id === 'continuous-delivery')
+  const config = { version: 1, paths: development.paths, statuses: development.statuses, defaultStatus: development.defaultStatus }
+  const created = await httpJson(app.port(), '/api/office/new', {
+    method: 'POST',
+    body: { name: 'Catalog', path: root, workflow: { mode: 'create', config }, catalog: { pack: 'development' } }
+  })
+  assert.equal(created.status, 200)
+  assert.ok(existsSync(join(root, '.claude', 'agents', 'code-reviewer.md')))
+  assert.ok(existsSync(join(root, '.claude', 'skills', 'test-strategy', 'SKILL.md')))
+  assert.equal(JSON.parse(readFileSync(join(root, 'agentwatch.setup.json'), 'utf8')).pack, 'development')
 })
 
 test('hub: ask created at the root routes to the office by project and is answered', async (t) => {

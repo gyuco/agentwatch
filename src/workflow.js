@@ -107,7 +107,7 @@ function writeIfMissing(path, content) {
   return true
 }
 
-export function setupWorkflow(root, { mode = 'create', config = DEFAULT_WORKFLOW } = {}) {
+export function setupWorkflow(root, { mode = 'create', config = DEFAULT_WORKFLOW, scaffold = true } = {}) {
   const project = resolve(root)
   const current = inspectWorkflow(project)
   if (current.exists && mode === 'create') {
@@ -123,10 +123,12 @@ export function setupWorkflow(root, { mode = 'create', config = DEFAULT_WORKFLOW
   writeFileSync(configPath(project), JSON.stringify(normalized, null, 2) + '\n')
 
   const created = []
-  const agent = join(project, '.claude', 'agents', 'work-planner.md')
-  const skill = join(project, '.claude', 'skills', 'work-items', 'SKILL.md')
-  if (writeIfMissing(agent, WORK_PLANNER)) created.push(relative(project, agent))
-  if (writeIfMissing(skill, WORK_ITEMS_SKILL)) created.push(relative(project, skill))
+  if (scaffold) {
+    const agent = join(project, '.claude', 'agents', 'work-planner.md')
+    const skill = join(project, '.claude', 'skills', 'work-items', 'SKILL.md')
+    if (writeIfMissing(agent, WORK_PLANNER)) created.push(relative(project, agent))
+    if (writeIfMissing(skill, WORK_ITEMS_SKILL)) created.push(relative(project, skill))
+  }
   for (const rel of normalized.paths) mkdirSync(join(project, ...rel.split('/')), { recursive: true })
   return { path: WORKFLOW_CONFIG, config: normalized, created }
 }
