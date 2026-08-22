@@ -13,8 +13,10 @@ import { loadOffices, addOffice, removeOffice, hubPortFile, registryFile } from 
 const HELP = `agentwatch — live dashboard for Claude Code agents, subagents and skills
 
 Usage:
-  agentwatch [serve] [--port N] [--no-open] [--no-hooks] [--project DIR]
+  agentwatch [--port N] [--no-open] [--no-hooks]
+  agentwatch serve [--port N] [--no-open] [--no-hooks]
   agentwatch hub [--port N] [--no-open] [--no-hooks]
+  agentwatch project [--port N] [--no-open] [--no-hooks] [--project DIR]
   agentwatch hub stop
   agentwatch hub status
   agentwatch office add <path> [--name NAME] [--no-hooks]
@@ -26,9 +28,10 @@ Usage:
   agentwatch help
 
 Commands:
-  serve    (default) scan agents/skills, install hooks, start dashboard
-  hub      start the multi-office hub: a map of all registered offices,
+  hub      (default) start the multi-office hub: a map of all registered offices,
            each with its own dashboard at /office/<id>
+  serve    alias for hub
+  project  scan agents/skills, install hooks, start dashboard for one project
   hub stop     uninstall hooks from all offices and stop the hub
   hub status   list registered offices and hub state
   office add   register a folder as an office (creates it, installs hooks)
@@ -368,13 +371,14 @@ function cmdOfficeList() {
 
 async function main() {
   const positional = parseArgs()
-  const cmd = positional[0] || 'serve'
+  const cmd = positional[0] || 'hub'
   if (cmd === 'hub') {
     const sub = positional[1]
     if (sub === 'stop') return cmdHubStop()
     if (sub === 'status') return cmdHubStatus()
     return cmdHub()
   }
+  if (cmd === 'serve') return cmdHub()
   if (cmd === 'office') {
     const sub = positional[1]
     const arg = positional[2]
@@ -386,7 +390,7 @@ async function main() {
     process.exit(2)
   }
   switch (cmd) {
-    case 'serve':
+    case 'project':
       return cmdServe()
     case 'stop':
       return cmdStop()

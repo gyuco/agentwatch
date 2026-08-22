@@ -14,12 +14,18 @@ Zero runtime dependencies. Node >= 18.17.
 # local development (from this repo)
 npm link
 
-# in any Claude Code project
-cd path/to/project
+# from anywhere
 agentwatch            # or: npx agentwatch
 ```
 
-It prints the dashboard URL, opens the browser, and writes hooks into
+It prints the hub URL and opens the browser on the projects page. New projects
+can be created from the page, or registered from the CLI:
+
+```bash
+agentwatch office add path/to/project --name acme
+```
+
+When a project is added, agentwatch writes hooks into that project's
 `.claude/settings.local.json` (git-ignored by Claude Code). From then on, every
 Claude Code session in that project feeds the dashboard — including sessions
 started in a new terminal.
@@ -41,9 +47,13 @@ started in a new terminal.
 
 | command | effect |
 |---|---|
-| `agentwatch` (or `serve`) | scan, install hooks, start dashboard, open browser |
-| `agentwatch stop` | uninstall hooks and stop the dashboard |
-| `agentwatch status` | project root, catalog, running agents, port |
+| `agentwatch` (or `serve`, or `hub`) | show the projects page and dashboards for registered projects |
+| `agentwatch project` | scan, install hooks, start one project dashboard from the detected root |
+| `agentwatch hub stop` | uninstall hooks from registered projects and stop the hub |
+| `agentwatch hub status` | list registered projects and hub status |
+| `agentwatch office add <path>` | register a project and install hooks |
+| `agentwatch stop` | uninstall hooks and stop a single-project dashboard |
+| `agentwatch status` | single-project root, catalog, running agents, port |
 | `agentwatch hooks` | show hook events configured in the project |
 
 Options: `--port N`, `--no-open`, `--no-hooks` (view only), `--project DIR`.
