@@ -82,7 +82,14 @@
   }
   #clock { display: flex; align-items: baseline; gap: 8px; padding: 3px 10px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 9px; box-shadow: 0 2px 0 var(--ink); }
   #clock .time { font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink); font-variant-numeric: tabular-nums; }
-  #clock .date { font-size: 10.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  #office .wall-clock {
+    position: absolute; left: 60.75%; top: 5.2%; width: 12.5%; height: 5.4%; z-index: 3;
+    display: flex; align-items: center; justify-content: center; padding: 2px 6px;
+    background: linear-gradient(180deg, #1c3030, #102222); border: 3px solid var(--ink); border-radius: 6px;
+    box-shadow: inset 0 0 0 2px rgba(120,235,183,.08), 0 3px 0 rgba(47,36,24,.24);
+  }
+  #office .wall-clock::before { content: ""; position: absolute; width: 4px; height: 4px; right: 5px; bottom: 4px; background: #77d8aa; border-radius: 50%; box-shadow: 0 0 5px rgba(119,216,170,.75); }
+  #office .wall-clock .time { color: #93e1b9; font-family: var(--mono); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-shadow: 0 0 6px rgba(119,216,170,.34); }
   #catalogBtn .cnt {
     background: var(--accent); color: var(--paper); border-radius: 999px;
     font-size: 10.5px; font-weight: 800; padding: 1px 7px;
@@ -1258,9 +1265,6 @@
   body[data-period="evening"] .brand, body[data-period="night"] .brand { color: #f6ecd0; }
   body[data-period="evening"] .meta, body[data-period="night"] .meta { color: #9aa3c4; }
   body[data-period="evening"] .meta b, body[data-period="night"] .meta b { color: #f6ecd0; }
-  body[data-period="evening"] #clock, body[data-period="night"] #clock { background: #2c3458; }
-  body[data-period="evening"] #clock .time, body[data-period="night"] #clock .time { color: #f6ecd0; }
-  body[data-period="evening"] #clock .date, body[data-period="night"] #clock .date { color: #9aa3c4; }
   body[data-period="evening"] .tag, body[data-period="night"] .tag { color: #ff9d7a; }
   .sky { transition: background 1.4s ease; }
   .sun, .moon { transition: left 1.4s ease, right 1.4s ease, top 1.4s ease; }
@@ -1911,8 +1915,7 @@
   body:not(.map) .brand { color: #182b2b; font-size: 17px; }
   body:not(.map) .logo { border-color: #182b2b; box-shadow: 2px 2px 0 rgba(24,43,43,.15); }
   body:not(.map) .logo::before { background: #182b2b; }
-  body:not(.map) > header button,
-  body:not(.map) #clock {
+  body:not(.map) > header button {
     background: #fff3d8;
     border-color: #182b2b;
     box-shadow: 0 2px 0 #182b2b;
@@ -2081,14 +2084,11 @@
     border-bottom-color: #0b2021;
   }
   body[data-period="evening"]:not(.map) > header button,
-  body[data-period="night"]:not(.map) > header button,
-  body[data-period="evening"]:not(.map) #clock,
-  body[data-period="night"]:not(.map) #clock { background: #244648; border-color: #091d1e; }
+  body[data-period="night"]:not(.map) > header button { background: #244648; border-color: #091d1e; }
   @media (max-width: 700px) {
     body:not(.map) > header { gap: 7px; padding: 7px 9px; }
     body:not(.map) .header-project { max-width: 150px; padding: 3px 7px; }
-    body:not(.map) > header .meta,
-    body:not(.map) #clock { display: none; }
+    body:not(.map) > header .meta { display: none; }
     body:not(.map) > header button { padding: 4px 7px; font-size: 10.5px; }
     body:not(.map) #catalogBtn { gap: 4px; }
     body:not(.map) #usageBtn {

@@ -2449,7 +2449,6 @@ function periodOf(now) {
 function tickClock() {
   const now = new Date()
   $('#clockTime').textContent = now.toLocaleTimeString('en-GB', { hour12: false })
-  $('#clockDate').textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
   document.body.dataset.period = periodOf(now)
 }
 
