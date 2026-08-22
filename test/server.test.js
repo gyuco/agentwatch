@@ -89,7 +89,7 @@ test('endpoints: state, hooks, rescan, stop, hook ingestion, SSE snapshot', asyn
   assert.deepEqual(hooks.json().hooks, [])
 
   const rescan = await httpJson(port, '/api/rescan', { method: 'POST' })
-  assert.deepEqual(rescan.json(), { agents: [], skills: [] })
+  assert.deepEqual(rescan.json(), { agents: [], skills: [], mcps: [] })
 
   const sse = await readSse(port, '/events', (buf) => buf.includes('event: snapshot'))
   const m = sse.match(/event: snapshot\ndata: (.*)/)

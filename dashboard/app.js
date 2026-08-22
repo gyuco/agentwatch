@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
+const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
 
 const AGW = (window.AGW_PREFIX || '').replace(/\/+$/, '')
 const api = (p) => AGW + p
@@ -827,11 +827,13 @@ function renderFeed() {
 }
 
 function renderCatalog() {
-  const { agents, skills } = state.catalog
+  const agents = state.catalog.agents || []
+  const skills = state.catalog.skills || []
+  const mcps = state.catalog.mcps || []
   $('#agentCount').textContent = `(${agents.length})`
   $('#skillCount').textContent = `(${skills.length})`
-  $('#agentCnt').textContent = agents.length
-  $('#skillCnt').textContent = skills.length
+  $('#mcpCount').textContent = `(${mcps.length})`
+  $('#catalogCnt').textContent = agents.length + skills.length + mcps.length
   $('#agentList').innerHTML = agents
     .map((a) => {
       const running = [...state.byId.values()].some((r) => r.type === a.id && agentPresent(r))
@@ -860,6 +862,14 @@ function renderCatalog() {
       </div>`
     })
     .join('')
+  $('#mcpList').innerHTML = mcps.length
+    ? mcps.map((m) => `<div class="note mcp-note">
+        <h4>🔌 ${esc(m.name)} <span class="badge ${m.disabled ? '' : 'used'}">${esc(m.disabled ? 'disabled' : m.transport)}</span></h4>
+        ${m.url ? `<div class="model">${esc(m.url)}</div>` : ''}
+        ${m.command ? `<div class="model">command: ${esc(m.command)}</div>` : ''}
+        <div class="mcp-source">${esc(m.source)}</div>
+      </div>`).join('')
+    : '<div class="mcp-empty">no project MCP servers found</div>'
 }
 
 const STATUS_LABEL = { draft: 'draft', 'in-progress': 'in progress', done: 'done' }
@@ -1524,8 +1534,7 @@ function setCatalogTab(tab) {
   for (const b of document.querySelectorAll('.mtab')) b.classList.toggle('active', b.dataset.tab === tab)
   for (const p of document.querySelectorAll('.tabpane')) p.classList.toggle('active', p.id === 'pane-' + tab)
 }
-$('#agentsBtn').addEventListener('click', () => openCatalog('agents'))
-$('#skillsBtn').addEventListener('click', () => openCatalog('skills'))
+$('#catalogBtn').addEventListener('click', () => openCatalog('agents'))
 document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', () => setCatalogTab(b.dataset.tab)))
 $('#modalClose').addEventListener('click', closeCatalog)
 $('#modal .backdrop').addEventListener('click', closeCatalog)

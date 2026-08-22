@@ -74,13 +74,13 @@
   button:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 3px 0 var(--ink); }
   button:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
   main { display: flex; flex: 1 1 auto; min-height: 0; }
-  #agentsBtn, #skillsBtn {
+  #catalogBtn {
     display: flex; align-items: center; gap: 8px;
   }
   #clock { display: flex; align-items: baseline; gap: 8px; padding: 3px 10px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 9px; box-shadow: 0 2px 0 var(--ink); }
   #clock .time { font-size: 15px; font-weight: 800; letter-spacing: .06em; color: var(--ink); font-variant-numeric: tabular-nums; }
   #clock .date { font-size: 10.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
-  #agentsBtn .cnt, #skillsBtn .cnt {
+  #catalogBtn .cnt {
     background: var(--accent); color: var(--paper); border-radius: 999px;
     font-size: 10.5px; font-weight: 800; padding: 1px 7px;
   }
@@ -426,6 +426,9 @@
   .note .desc { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
   .note .tools { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
   .note .model { font-family: var(--mono); font-size: 11px; color: var(--sub); margin-top: 4px; }
+  .note.mcp-note .model { overflow-wrap: anywhere; }
+  .mcp-source { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .mcp-empty { padding: 18px; text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; }
   .tool-chip { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--muted); border: 1.5px solid var(--ink); padding: 1px 6px; border-radius: 5px; background: var(--paper-2); }
   .ava { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--ink); flex: 0 0 auto; background: hsl(var(--hue) 65% 52%); }
   .section { flex: 0 0 auto; }
@@ -1785,8 +1788,7 @@
     box-shadow: 0 2px 0 #182b2b;
   }
   body:not(.map) > header button:hover { background: #fffaf0; }
-  body:not(.map) #agentsBtn .cnt,
-  body:not(.map) #skillsBtn .cnt { background: #df624b; color: #fffaf0; }
+  body:not(.map) #catalogBtn .cnt { background: #df624b; color: #fffaf0; }
   body:not(.map) #stagewrap {
     background:
       radial-gradient(circle at 50% 45%, rgba(255,255,255,.72), transparent 48%),
@@ -1962,8 +1964,7 @@
     body:not(.map) > header .meta,
     body:not(.map) #clock { display: none; }
     body:not(.map) > header button { padding: 4px 7px; font-size: 10.5px; }
-    body:not(.map) #agentsBtn,
-    body:not(.map) #skillsBtn { gap: 4px; }
+    body:not(.map) #catalogBtn { gap: 4px; }
     body:not(.map) #usageBtn {
       width: 34px; min-width: 34px; padding: 4px 0; font-size: 0;
     }

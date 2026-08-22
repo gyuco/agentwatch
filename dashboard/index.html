@@ -13,8 +13,7 @@
   <span class="dot" id="conn"></span>
   <div class="meta" id="meta">…</div>
   <div class="spacer"></div>
-  <button id="agentsBtn" title="Installed agents">🤖 agents <span class="cnt" id="agentCnt">0</span></button>
-  <button id="skillsBtn" title="Installed skills">🧩 skills <span class="cnt" id="skillCnt">0</span></button>
+  <button id="catalogBtn" title="Project catalog">🧭 catalog <span class="cnt" id="catalogCnt">0</span></button>
   <button id="usageBtn" title="Show /usage output">📊 usage</button>
   <div id="clock"><span class="time" id="clockTime">--:--:--</span><span class="date" id="clockDate"></span></div>
 </header>
@@ -52,6 +51,7 @@
     <div class="mtabs">
       <button class="mtab active" data-tab="agents">🤖 agents <span id="agentCount"></span></button>
       <button class="mtab" data-tab="skills">🧩 skills <span id="skillCount"></span></button>
+      <button class="mtab" data-tab="mcps">🔌 MCP <span id="mcpCount"></span></button>
     </div>
     <div class="section tabpane active" id="pane-agents">
       <div class="aside-title">Agents</div>
@@ -61,7 +61,11 @@
       <div class="aside-title">Skills</div>
       <div id="skillList"></div>
     </div>
-    <button class="rescan-note" id="rescan2">↻ rescan agents & skills</button>
+    <div class="section tabpane" id="pane-mcps">
+      <div class="aside-title">Project MCP servers</div>
+      <div id="mcpList"></div>
+    </div>
+    <button class="rescan-note" id="rescan2">↻ rescan catalog</button>
   </div>
 </div>
 <div id="docModal">
