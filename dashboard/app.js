@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], taskBoard: { columns: [], tasks: [], sources: [] }, tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
+const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], taskBoard: { columns: [], tasks: [], sources: [] }, tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [], calendarEvents: [] }
 
 const TEAM_MANAGEMENT_PROMPT = `You are the main agent for this project. Help the user review and manage the project's AI collaboration setup without assuming any development methodology, document naming convention, or standard team structure.
 
@@ -1115,16 +1115,13 @@ function connect() {
     state.connected = true
     $('#conn').className = 'dot on'
     $('#meta').innerHTML = `<b>${esc(data.project)}</b>`
-    const sign = $('#projectSign .pboard')
-    if (sign) {
-      const pname = (data.project || '').split(/[\\/]/).filter(Boolean).pop() || '…'
-      sign.textContent = pname
-      const signEl = $('#projectSign')
-      if (signEl) signEl.title = pname
-    }
+    const pname = (data.project || '').split(/[\\/]/).filter(Boolean).pop() || '…'
+    $('#headerProjectName').textContent = pname
+    $('#headerProject').title = data.project || pname
     applySnapshot({ ...data.collector, seats: data.seats, asks: data.asks })
     loadStories()
     loadNotes()
+    loadCalendar()
   })
   es.addEventListener('event', (e) => {
     const ev = JSON.parse(e.data)
@@ -1149,6 +1146,12 @@ function connect() {
     const d = JSON.parse(e.data)
     state.notes = d.notes || []
     maybeRenderNotes()
+  })
+  es.addEventListener('calendar', (e) => {
+    const d = JSON.parse(e.data)
+    state.calendarEvents = d.events || []
+    renderWallCalendar()
+    if ($('#calendarModal').classList.contains('open')) renderCalendar()
   })
   es.onerror = () => {
     state.connected = false
@@ -1456,6 +1459,240 @@ $('#notesAdd').addEventListener('click', addNote)
 $('#notesClose').addEventListener('click', closeNotes)
 $('#notesModal .backdrop').addEventListener('click', closeNotes)
 
+/* ---------- workspace calendar ---------- */
+const pad2 = (n) => String(n).padStart(2, '0')
+const localDateKey = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+const dateFromKey = (key) => {
+  const [year, month, day] = String(key).split('-').map(Number)
+  return new Date(year, month - 1, day, 12)
+}
+const eventDateKey = (event) => localDateKey(new Date(Number(event.startsAt)))
+const todayDate = new Date()
+let calendarView = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1, 12)
+let calendarSelected = localDateKey(todayDate)
+
+function eventsForDate(key) {
+  return state.calendarEvents
+    .filter((event) => eventDateKey(event) === key)
+    .sort((a, b) => Number(a.startsAt) - Number(b.startsAt))
+}
+
+function renderWallCalendar() {
+  const now = new Date()
+  $('#wallCalendarMonth').textContent = now.toLocaleDateString(undefined, { month: 'long' }).toUpperCase()
+  $('#wallCalendarYear').textContent = String(now.getFullYear())
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 12)
+  const mondayOffset = (monthStart.getDay() + 6) % 7
+  const gridStart = new Date(now.getFullYear(), now.getMonth(), 1 - mondayOffset, 12)
+  const todayKey = localDateKey(now)
+  let days = ''
+  for (let i = 0; i < 42; i++) {
+    const day = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i, 12)
+    const key = localDateKey(day)
+    const classes = [
+      day.getMonth() === now.getMonth() ? '' : 'outside',
+      key === todayKey ? 'today' : '',
+      eventsForDate(key).length ? 'has-event' : ''
+    ].filter(Boolean).join(' ')
+    days += `<i class="${classes}">${day.getDate()}</i>`
+  }
+  $('#wallCalendarGrid').innerHTML = days
+  const next = [...state.calendarEvents]
+    .filter((event) => Number(event.startsAt) >= Date.now())
+    .sort((a, b) => Number(a.startsAt) - Number(b.startsAt))[0]
+  if (!next) {
+    $('#wallCalendarNext').textContent = 'no upcoming events'
+    return
+  }
+  const when = new Date(Number(next.startsAt))
+  const prefix = localDateKey(when) === localDateKey(now)
+    ? when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+  $('#wallCalendarNext').textContent = `${prefix} · ${next.title}`
+}
+
+let birdTimer = null
+function releaseBird() {
+  if (document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const skies = [...document.querySelectorAll('.wframe .birds')]
+  if (!skies.length || document.querySelectorAll('.bird').length >= 2) return
+  const bird = document.createElement('span')
+  bird.className = 'bird' + (Math.random() < .5 ? ' reverse' : '')
+  bird.style.setProperty('--bird-y', `${14 + Math.random() * 32}%`)
+  bird.style.setProperty('--bird-duration', `${5.5 + Math.random() * 2.5}s`)
+  skies[Math.floor(Math.random() * skies.length)].appendChild(bird)
+  bird.addEventListener('animationend', () => bird.remove(), { once: true })
+  setTimeout(() => bird.remove(), 9000)
+}
+
+function scheduleBird() {
+  clearTimeout(birdTimer)
+  birdTimer = setTimeout(() => {
+    releaseBird()
+    if (Math.random() < .22) setTimeout(releaseBird, 500 + Math.random() * 800)
+    scheduleBird()
+  }, 12000 + Math.random() * 24000)
+}
+
+function renderCalendarDayEvents() {
+  const selected = dateFromKey(calendarSelected)
+  $('#calendarSelectedTitle').textContent = selected.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  $('#calendarEventDate').value = calendarSelected
+  const events = eventsForDate(calendarSelected)
+  $('#calendarDayEvents').innerHTML = events.map((event) => {
+    const starts = new Date(Number(event.startsAt))
+    return `<article class="calendar-event" data-id="${esc(event.id)}">
+      <time>${esc(starts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }))}</time>
+      <div class="calendar-event-copy"><b>${esc(event.title)}</b>${event.text ? `<small>${esc(event.text)}</small>` : ''}</div>
+      <button type="button" class="calendar-event-delete" title="delete event">✕</button>
+    </article>`
+  }).join('') || '<div class="calendar-empty">Nothing scheduled for this date.</div>'
+}
+
+function renderCalendar() {
+  const year = calendarView.getFullYear()
+  const month = calendarView.getMonth()
+  $('#calendarMonthTitle').textContent = calendarView.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  const first = new Date(year, month, 1, 12)
+  const mondayOffset = (first.getDay() + 6) % 7
+  const start = new Date(year, month, 1 - mondayOffset, 12)
+  const todayKey = localDateKey(new Date())
+  let html = ''
+  for (let i = 0; i < 42; i++) {
+    const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, 12)
+    const key = localDateKey(day)
+    const events = eventsForDate(key)
+    const classes = [
+      'calendar-day',
+      day.getMonth() === month ? '' : 'outside',
+      key === todayKey ? 'today' : '',
+      key === calendarSelected ? 'selected' : ''
+    ].filter(Boolean).join(' ')
+    const chips = events.slice(0, 2).map((event) => {
+      const starts = new Date(Number(event.startsAt))
+      return `<span class="calendar-dot">${esc(starts.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }))} ${esc(event.title)}</span>`
+    }).join('')
+    html += `<button type="button" class="${classes}" data-date="${key}" aria-label="${esc(day.toLocaleDateString())}${events.length ? `, ${events.length} events` : ''}">
+      <span class="calendar-day-number">${day.getDate()}</span>
+      <span class="calendar-dots">${chips}${events.length > 2 ? `<span class="calendar-more">+${events.length - 2} more</span>` : ''}</span>
+    </button>`
+  }
+  $('#calendarGrid').innerHTML = html
+  renderCalendarDayEvents()
+}
+
+async function loadCalendar() {
+  try {
+    const res = await fetch(api('/api/calendar'))
+    const data = await res.json()
+    state.calendarEvents = data.events || []
+    renderWallCalendar()
+    if ($('#calendarModal').classList.contains('open')) renderCalendar()
+  } catch {}
+}
+
+function openCalendar() {
+  const now = new Date()
+  calendarView = new Date(now.getFullYear(), now.getMonth(), 1, 12)
+  calendarSelected = localDateKey(now)
+  $('#calendarStatus').textContent = ''
+  $('#calendarModal').classList.add('open')
+  renderCalendar()
+  loadCalendar()
+}
+
+function closeCalendar() { $('#calendarModal').classList.remove('open') }
+
+$('#calendarBtn').addEventListener('click', (e) => { e.stopPropagation(); openCalendar() })
+$('#calendarClose').addEventListener('click', closeCalendar)
+$('#calendarModal .backdrop').addEventListener('click', closeCalendar)
+$('#calendarPrev').addEventListener('click', () => {
+  calendarView = new Date(calendarView.getFullYear(), calendarView.getMonth() - 1, 1, 12)
+  renderCalendar()
+})
+$('#calendarNext').addEventListener('click', () => {
+  calendarView = new Date(calendarView.getFullYear(), calendarView.getMonth() + 1, 1, 12)
+  renderCalendar()
+})
+$('#calendarToday').addEventListener('click', () => {
+  const now = new Date()
+  calendarView = new Date(now.getFullYear(), now.getMonth(), 1, 12)
+  calendarSelected = localDateKey(now)
+  renderCalendar()
+})
+$('#calendarGrid').addEventListener('click', (e) => {
+  const day = e.target.closest('.calendar-day')
+  if (!day) return
+  calendarSelected = day.dataset.date
+  const selected = dateFromKey(calendarSelected)
+  if (selected.getMonth() !== calendarView.getMonth() || selected.getFullYear() !== calendarView.getFullYear()) {
+    calendarView = new Date(selected.getFullYear(), selected.getMonth(), 1, 12)
+  }
+  renderCalendar()
+})
+$('#calendarEventDate').addEventListener('change', (e) => {
+  if (!e.target.value) return
+  calendarSelected = e.target.value
+  const selected = dateFromKey(calendarSelected)
+  calendarView = new Date(selected.getFullYear(), selected.getMonth(), 1, 12)
+  renderCalendar()
+})
+$('#calendarForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const title = $('#calendarEventTitle').value.trim()
+  const date = $('#calendarEventDate').value
+  const eventTime = $('#calendarEventTime').value
+  const text = $('#calendarEventText').value.trim()
+  const [year, month, day] = date.split('-').map(Number)
+  const [hour, minute] = eventTime.split(':').map(Number)
+  const startsAt = new Date(year, month - 1, day, hour, minute, 0, 0).getTime()
+  if (!title || !date || !eventTime || !Number.isFinite(startsAt)) return
+  const save = e.currentTarget.querySelector('.calendar-save')
+  save.disabled = true
+  $('#calendarStatus').textContent = 'saving…'
+  try {
+    const res = await fetch(api('/api/calendar/save'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title, text, startsAt })
+    })
+    const data = await res.json()
+    if (!res.ok || !data.event) throw new Error(data.error || `HTTP ${res.status}`)
+    state.calendarEvents = [...state.calendarEvents.filter((item) => item.id !== data.event.id), data.event]
+      .sort((a, b) => Number(a.startsAt) - Number(b.startsAt))
+    $('#calendarEventTitle').value = ''
+    $('#calendarEventText').value = ''
+    $('#calendarStatus').textContent = 'event added'
+    renderCalendar()
+    renderWallCalendar()
+    $('#calendarEventTitle').focus()
+  } catch (err) {
+    $('#calendarStatus').textContent = 'could not save: ' + String((err && err.message) || err)
+  } finally {
+    save.disabled = false
+  }
+})
+$('#calendarDayEvents').addEventListener('click', async (e) => {
+  const button = e.target.closest('.calendar-event-delete')
+  const card = e.target.closest('.calendar-event')
+  if (!button || !card || !confirm('delete this calendar event?')) return
+  const id = card.dataset.id
+  button.disabled = true
+  try {
+    const res = await fetch(api('/api/calendar/delete'), {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id })
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    state.calendarEvents = state.calendarEvents.filter((event) => event.id !== id)
+    renderCalendar()
+    renderWallCalendar()
+  } catch (err) {
+    $('#calendarStatus').textContent = 'could not delete: ' + String((err && err.message) || err)
+    button.disabled = false
+  }
+})
+renderWallCalendar()
+scheduleBird()
+
 /* ---------- fake CEO video call (desk phone on the main desk) ---------- */
 const CEO_SCRIPT = [
   { mood: 'calm', text: 'Ah, finally someone picks up! This is Rick, the CEO. Just a second, I promise.' },
@@ -1610,7 +1847,7 @@ $('#catalogBtn').addEventListener('click', () => openCatalog('agents'))
 document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', () => setCatalogTab(b.dataset.tab)))
 $('#modalClose').addEventListener('click', closeCatalog)
 $('#modal .backdrop').addEventListener('click', closeCatalog)
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeNotes(); closeConsole(); closeGit(); closeCall(); closeTeam() } })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeNotes(); closeCalendar(); closeConsole(); closeGit(); closeCall(); closeTeam() } })
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault()

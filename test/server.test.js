@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { EventCollector } from '../src/collector.js'
 import { startServer } from '../src/server.js'
 import { scanCatalog } from '../src/scan.js'
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { request } from 'node:http'
@@ -130,6 +130,40 @@ test('transcript resolves subagents unknown to the collector via the main sessio
 
   const ghost = await httpJson(port, '/api/transcript?agent=nope')
   assert.equal(ghost.json().found, false)
+})
+
+test('calendar events persist in the workspace and can be deleted', async (t) => {
+  const root = fixture()
+  const app = startServer({ collector: new EventCollector(), project: root, catalog: { agents: [], skills: [] } })
+  await app.listen()
+  t.after(() => app.close())
+
+  const empty = await httpJson(app.port(), '/api/calendar')
+  assert.deepEqual(empty.json(), { events: [] })
+
+  const startsAt = new Date(2027, 2, 18, 14, 30).getTime()
+  const saved = await httpJson(app.port(), '/api/calendar/save', {
+    method: 'POST',
+    body: { title: 'Release review', text: 'Prepare the changelog', startsAt }
+  })
+  assert.equal(saved.status, 200)
+  assert.equal(saved.json().event.title, 'Release review')
+  assert.equal(saved.json().event.startsAt, startsAt)
+
+  const persisted = JSON.parse(readFileSync(join(root, '.agentwatch', 'calendar.json'), 'utf8'))
+  assert.equal(persisted.events[0].text, 'Prepare the changelog')
+
+  const invalid = await httpJson(app.port(), '/api/calendar/save', {
+    method: 'POST', body: { title: '', startsAt }
+  })
+  assert.equal(invalid.status, 400)
+
+  const removed = await httpJson(app.port(), '/api/calendar/delete', {
+    method: 'POST', body: { id: saved.json().event.id }
+  })
+  assert.equal(removed.status, 200)
+  const after = await httpJson(app.port(), '/api/calendar')
+  assert.deepEqual(after.json(), { events: [] })
 })
 
 test('stories endpoint reads docs/stories with status and lane', async (t) => {

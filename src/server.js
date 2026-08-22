@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { EventCollector, MAIN_ID } from './collector.js'
 import { scanCatalog } from './scan.js'
 import { attachQueueWatcher } from './queue.js'
-import { queueFile, portFile, notesFile } from './paths.js'
+import { queueFile, portFile, notesFile, calendarFile } from './paths.js'
 import { loadOffices, addOffice, removeOffice } from './offices.js'
 import { installHooks, uninstallHooks, installedHooks } from './settings.js'
 import { inspectWorkflow, readTaskBoard, setupWorkflow } from './workflow.js'
@@ -83,6 +83,9 @@ const MAX_TRANSCRIPT_MESSAGES = 500
 const MAX_NOTES = 50
 const NOTE_TITLE_MAX = 120
 const NOTE_TEXT_MAX = 4000
+const MAX_CALENDAR_EVENTS = 500
+const CALENDAR_TITLE_MAX = 160
+const CALENDAR_TEXT_MAX = 2000
 const OFFICE_W = 960
 const OFFICE_H = 540
 
@@ -105,6 +108,22 @@ function writeNotes(project, notes) {
   try {
     mkdirSync(dirname(notesFile(project)), { recursive: true })
     writeFileSync(notesFile(project), JSON.stringify({ notes }, null, 2))
+  } catch {}
+}
+
+function readCalendar(project) {
+  try {
+    const data = JSON.parse(readFileSync(calendarFile(project), 'utf8'))
+    return Array.isArray(data.events) ? data.events : []
+  } catch {
+    return []
+  }
+}
+
+function writeCalendar(project, events) {
+  try {
+    mkdirSync(dirname(calendarFile(project)), { recursive: true })
+    writeFileSync(calendarFile(project), JSON.stringify({ events }, null, 2))
   } catch {}
 }
 
@@ -506,6 +525,53 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     json(res, 200, { ok: true })
   }
 
+  function handleCalendarSave(ctx, body, res) {
+    const title = String(body.title ?? '').trim().slice(0, CALENDAR_TITLE_MAX)
+    const text = String(body.text ?? '').trim().slice(0, CALENDAR_TEXT_MAX)
+    const startsAt = Number(body.startsAt)
+    if (!title) {
+      json(res, 400, { error: 'title required' })
+      return
+    }
+    if (!Number.isFinite(startsAt) || startsAt < 0 || startsAt > 32503680000000) {
+      json(res, 400, { error: 'valid date and time required' })
+      return
+    }
+    const events = readCalendar(ctx.project)
+    const id = String(body.id || '').trim()
+    let event = id ? events.find((item) => item.id === id) : null
+    if (event) {
+      Object.assign(event, { title, text, startsAt, updatedAt: Date.now() })
+    } else {
+      event = {
+        id: 'event-' + randomUUID().slice(0, 8),
+        title,
+        text,
+        startsAt,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+      events.push(event)
+      if (events.length > MAX_CALENDAR_EVENTS) events.splice(0, events.length - MAX_CALENDAR_EVENTS)
+    }
+    events.sort((a, b) => Number(a.startsAt) - Number(b.startsAt))
+    writeCalendar(ctx.project, events)
+    broadcastTo(ctx, 'calendar', { events })
+    json(res, 200, { ok: true, event })
+  }
+
+  function handleCalendarDelete(ctx, body, res) {
+    const id = String(body.id || '').trim()
+    if (!id) {
+      json(res, 400, { error: 'id required' })
+      return
+    }
+    const events = readCalendar(ctx.project).filter((item) => item.id !== id)
+    writeCalendar(ctx.project, events)
+    broadcastTo(ctx, 'calendar', { events })
+    json(res, 200, { ok: true })
+  }
+
   const ctxForProject = (p) => {
     const want = resolve(String(p || ''))
     for (const ctx of contexts.values()) {
@@ -812,6 +878,25 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     if (rest === '/api/notes/delete' && req.method === 'POST') {
       readJson(req)
         .then((body) => handleNotesDelete(ctx, body, res))
+        .catch(() => json(res, 400, { error: 'invalid json' }))
+      return
+    }
+
+    if (rest === '/api/calendar' && req.method === 'GET') {
+      json(res, 200, { events: readCalendar(ctx.project) })
+      return
+    }
+
+    if (rest === '/api/calendar/save' && req.method === 'POST') {
+      readJson(req)
+        .then((body) => handleCalendarSave(ctx, body, res))
+        .catch(() => json(res, 400, { error: 'invalid json' }))
+      return
+    }
+
+    if (rest === '/api/calendar/delete' && req.method === 'POST') {
+      readJson(req)
+        .then((body) => handleCalendarDelete(ctx, body, res))
         .catch(() => json(res, 400, { error: 'invalid json' }))
       return
     }

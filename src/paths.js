@@ -34,6 +34,10 @@ export function notesFile(root) {
   return join(agentwatchDir(root), 'notes.json')
 }
 
+export function calendarFile(root) {
+  return join(agentwatchDir(root), 'calendar.json')
+}
+
 export function backupsDir(root) {
   return join(agentwatchDir(root), 'backups')
 }

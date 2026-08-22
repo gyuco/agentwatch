@@ -10,6 +10,7 @@
 <body>
 <header>
   <div class="brand"><span class="logo"></span>agentwatch</div>
+  <div class="header-project" id="headerProject" title="current project"><span>office</span><b id="headerProjectName">…</b></div>
   <span class="dot" id="conn"></span>
   <div class="meta" id="meta">…</div>
   <div class="spacer"></div>
@@ -173,6 +174,43 @@
     </div>
   </div>
 </div>
+<div id="calendarModal">
+  <div class="backdrop"></div>
+  <div class="doc-panel calendar-panel">
+    <div class="doc-head calendar-head">
+      <span class="doc-title">📅 project calendar</span>
+      <div class="calendar-nav">
+        <button type="button" id="calendarPrev" title="previous month">‹</button>
+        <button type="button" id="calendarToday">today</button>
+        <button type="button" id="calendarNext" title="next month">›</button>
+      </div>
+      <span class="close-x" id="calendarClose" title="Close">✕</span>
+    </div>
+    <div class="doc-body calendar-body">
+      <section class="calendar-month">
+        <h2 id="calendarMonthTitle">…</h2>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+      <aside class="calendar-sidebar">
+        <div class="calendar-selected"><small>selected date</small><h3 id="calendarSelectedTitle">…</h3></div>
+        <form id="calendarForm">
+          <label>Event title<input id="calendarEventTitle" maxlength="160" required placeholder="e.g. Release review"></label>
+          <div class="calendar-form-row">
+            <label>Date<input id="calendarEventDate" type="date" required></label>
+            <label>Time<input id="calendarEventTime" type="time" required value="09:00"></label>
+          </div>
+          <label>Notes<textarea id="calendarEventText" maxlength="2000" placeholder="Optional details…"></textarea></label>
+          <button type="submit" class="calendar-save">＋ add event</button>
+          <p class="calendar-status" id="calendarStatus"></p>
+        </form>
+        <div class="calendar-day-events"><h4>Events</h4><div id="calendarDayEvents"></div></div>
+      </aside>
+    </div>
+  </div>
+</div>
 <div id="callModal">
   <div class="backdrop"></div>
   <div class="call-panel">
@@ -225,9 +263,15 @@
       <div id="office">
         <div class="wall"></div>
         <div class="floor"></div>
-        <div class="wframe w1"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
-        <div class="wframe w2"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
-        <div class="wframe w3"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="rain"></div></div></div>
+        <div class="wframe w1"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="city far"><i></i><i></i><i></i><i></i><i></i></div><div class="city near"><i></i><i></i><i></i><i></i></div><div class="birds"></div><div class="rain"></div></div></div>
+        <div class="wframe w2"><div class="sky"><div class="sun"></div><div class="moon"></div><div class="stars"></div><div class="city far"><i></i><i></i><i></i><i></i><i></i></div><div class="city near"><i></i><i></i><i></i><i></i></div><div class="birds"></div><div class="rain"></div></div></div>
+        <button class="wall-calendar" id="calendarBtn" title="open project calendar">
+          <span class="wc-binding"></span>
+          <span class="wc-heading"><b id="wallCalendarMonth">MONTH</b><small id="wallCalendarYear">----</small></span>
+          <span class="wc-week"><i>M</i><i>T</i><i>W</i><i>T</i><i>F</i><i>S</i><i>S</i></span>
+          <span class="wc-grid" id="wallCalendarGrid"></span>
+          <span class="wc-next" id="wallCalendarNext">no upcoming events</span>
+        </button>
         <div class="pinboard" id="pinboard" title="open the task kanban">
           <div class="pb-head"><span class="pb-title">TASKS</span><button class="pb-refresh" id="pbRefresh" title="refresh stories">↻</button></div>
           <div class="pb-counts" id="pbCounts"></div>
@@ -236,9 +280,6 @@
             <span class="pb-notes-copy"><span class="pb-notes-label">notes</span><span class="pb-notes-preview" id="notesPreview">no notes yet</span></span>
             <span class="pb-n" id="notesCount">0</span>
           </button>
-        </div>
-        <div class="project-sign" id="projectSign" title="project">
-          <div class="pboard">…</div>
         </div>
         <div class="door" id="door"><div class="sign">ENTRANCE</div><div class="dbody"><div class="rail"></div><div class="knob"></div></div><div class="flap"></div></div>
         <div class="plant" id="plant" title="pat the cactus 🌵"><div class="stem"></div><div class="leaf l1"></div><div class="leaf l2"></div><div class="leaf l3"></div><div class="flower"></div><div class="pot"></div><div class="shot">🌵 hi!</div></div>
