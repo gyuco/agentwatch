@@ -875,6 +875,14 @@ function renderTasks() {
   $('#tasksTitle').textContent = `📋 tasks · docs/stories (${st.length})`
 }
 
+function renderNotesPreview() {
+  const notes = state.notes || []
+  const preview = notes.slice(-2).reverse().map((n) => n.title || n.text || 'untitled').join(' · ')
+  $('#notesCount').textContent = String(notes.length)
+  $('#notesPreview').textContent = preview || 'no notes yet'
+  $('#notesTitle').textContent = `📌 notes (${notes.length})`
+}
+
 function loadStories() {
   fetch(api('/api/stories'))
     .then((r) => r.json())
@@ -1178,7 +1186,7 @@ $('#tasksBody').addEventListener('click', (e) => {
 const OFFICE_W = 960
 const OFFICE_H = 540
 const clampN = (v, min, max) => Math.min(max, Math.max(min, v))
-const officeScale = () => ($('#office').getBoundingClientRect().width / OFFICE_W) || 1
+const notesScale = () => ($('#notes').getBoundingClientRect().width / OFFICE_W) || 1
 
 let notesEditingId = null
 let notesDrag = null
@@ -1188,6 +1196,7 @@ function renderNotes() {
   const wrap = $('#notes')
   wrap.innerHTML = ''
   for (const n of state.notes) wrap.appendChild(noteEl(n))
+  renderNotesPreview()
 }
 
 function maybeRenderNotes() {
@@ -1229,6 +1238,7 @@ function noteEl(n) {
     if (!confirm('delete this note?')) return
     state.notes = state.notes.filter((x) => x.id !== n.id)
     el.remove()
+    renderNotesPreview()
     if (n.id) {
       try { await fetch(api('/api/notes/delete'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: n.id }) }) } catch {}
     }
@@ -1242,7 +1252,7 @@ function noteEl(n) {
   })
   el.addEventListener('pointermove', (e) => {
     if (!notesDrag || notesDrag.el !== el) return
-    const s = officeScale()
+    const s = notesScale()
     const x = clampN(notesDrag.l + (e.clientX - notesDrag.sx) / s, 0, OFFICE_W - el.offsetWidth)
     const y = clampN(notesDrag.t + (e.clientY - notesDrag.sy) / s, 0, OFFICE_H - el.offsetHeight)
     el.style.left = x + 'px'
@@ -1326,6 +1336,7 @@ async function saveNoteEdit(el, n) {
   el.dataset.id = n.id
   el.querySelector('.st-title').textContent = n.title || 'untitled'
   el.querySelector('.st-body').textContent = n.text || '—'
+  renderNotesPreview()
   afterNoteInteraction()
 }
 
@@ -1344,6 +1355,13 @@ async function addNote() {
   startNoteEdit($('#notes').querySelector(`[data-id=""]`), n)
 }
 
+function openNotes() {
+  $('#notesModal').classList.add('open')
+  renderNotes()
+}
+
+function closeNotes() { $('#notesModal').classList.remove('open') }
+
 function loadNotes() {
   fetch(api('/api/notes'))
     .then((r) => r.json())
@@ -1351,7 +1369,10 @@ function loadNotes() {
     .catch(() => {})
 }
 
-$('#notesBtn').addEventListener('click', (e) => { e.stopPropagation(); addNote() })
+$('#notesBtn').addEventListener('click', (e) => { e.stopPropagation(); openNotes() })
+$('#notesAdd').addEventListener('click', addNote)
+$('#notesClose').addEventListener('click', closeNotes)
+$('#notesModal .backdrop').addEventListener('click', closeNotes)
 
 /* ---------- fake CEO video call (desk phone on the main desk) ---------- */
 const CEO_SCRIPT = [
@@ -1508,7 +1529,7 @@ $('#skillsBtn').addEventListener('click', () => openCatalog('skills'))
 document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', () => setCatalogTab(b.dataset.tab)))
 $('#modalClose').addEventListener('click', closeCatalog)
 $('#modal .backdrop').addEventListener('click', closeCatalog)
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeConsole(); closeGit(); closeCall() } })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeNotes(); closeConsole(); closeGit(); closeCall() } })
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault()

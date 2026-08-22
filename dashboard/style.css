@@ -220,21 +220,22 @@
   .mtab span { font-size: 10.5px; opacity: .9; }
   .tabpane { display: none; }
   .tabpane.active { display: block; }
-  #docModal, #usageModal, #tasksModal, #onboardModal, #filesModal, #gitModal, #transcriptModal {
+  #docModal, #usageModal, #tasksModal, #notesModal, #onboardModal, #filesModal, #gitModal, #transcriptModal {
     position: fixed; inset: 0; display: none;
   }
   #docModal, #usageModal { z-index: 270; }
   #filesModal { z-index: 265; }
   #gitModal { z-index: 264; }
   #tasksModal { z-index: 250; }
+  #notesModal { z-index: 255; }
   #onboardModal { z-index: 260; }
   #transcriptModal { z-index: 275; }
-  #docModal.open, #usageModal.open, #tasksModal.open, #onboardModal.open, #filesModal.open, #gitModal.open, #transcriptModal.open { display: block; }
-  #docModal .backdrop, #usageModal .backdrop, #tasksModal .backdrop, #onboardModal .backdrop, #filesModal .backdrop, #gitModal .backdrop, #transcriptModal .backdrop {
+  #docModal.open, #usageModal.open, #tasksModal.open, #notesModal.open, #onboardModal.open, #filesModal.open, #gitModal.open, #transcriptModal.open { display: block; }
+  #docModal .backdrop, #usageModal .backdrop, #tasksModal .backdrop, #notesModal .backdrop, #onboardModal .backdrop, #filesModal .backdrop, #gitModal .backdrop, #transcriptModal .backdrop {
     position: absolute; inset: 0; background: rgba(47,36,24,.5);
     animation: fadein .2s ease-out;
   }
-  #docModal .doc-panel, #usageModal .doc-panel, #tasksModal .doc-panel, #onboardModal .doc-panel, #filesModal .doc-panel, #gitModal .doc-panel, #transcriptModal .doc-panel {
+  #docModal .doc-panel, #usageModal .doc-panel, #tasksModal .doc-panel, #notesModal .doc-panel, #onboardModal .doc-panel, #filesModal .doc-panel, #gitModal .doc-panel, #transcriptModal .doc-panel {
     position: absolute; top: 4%; bottom: 4%; left: 50%; transform: translateX(-50%);
     width: min(780px, 92vw);
     background: var(--paper);
@@ -248,16 +249,16 @@
   #onboardModal .doc-panel { top: 50%; bottom: auto; transform: translate(-50%, -50%); max-height: 82vh; width: min(460px, 92vw); animation: docupCenter .25s cubic-bezier(.34,1.4,.5,1); }
   @keyframes docup { from { transform: translate(-50%, 24px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
   @keyframes docupCenter { from { transform: translate(-50%, calc(-50% + 16px)); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
-  #docModal .doc-head, #usageModal .doc-head, #tasksModal .doc-head, #onboardModal .doc-head, #filesModal .doc-head, #gitModal .doc-head, #transcriptModal .doc-head {
+  #docModal .doc-head, #usageModal .doc-head, #tasksModal .doc-head, #notesModal .doc-head, #onboardModal .doc-head, #filesModal .doc-head, #gitModal .doc-head, #transcriptModal .doc-head {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 14px; background: var(--paper-2);
     border-bottom: 3px solid var(--ink); flex: 0 0 auto;
   }
-  #docModal .doc-title, #usageModal .doc-title, #tasksModal .doc-title, #onboardModal .doc-title, #filesModal .doc-title, #gitModal .doc-title, #transcriptModal .doc-title { font-family: var(--mono); font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #docModal .doc-title, #usageModal .doc-title, #tasksModal .doc-title, #notesModal .doc-title, #onboardModal .doc-title, #filesModal .doc-title, #gitModal .doc-title, #transcriptModal .doc-title { font-family: var(--mono); font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #docModal .doc-tabs, #tasksModal .doc-tabs { display: flex; gap: 5px; margin-left: auto; }
   #docModal .dtab, #tasksModal .dtab { font-size: 11px; padding: 2px 11px; border-radius: 999px; box-shadow: 0 2px 0 var(--ink); }
   #docModal .dtab.active, #tasksModal .dtab.active { background: var(--accent); color: var(--paper); }
-  #docModal .close-x, #usageModal .close-x, #tasksModal .close-x, #onboardModal .close-x, #filesModal .close-x, #gitModal .close-x, #transcriptModal .close-x {
+  #docModal .close-x, #usageModal .close-x, #tasksModal .close-x, #notesModal .close-x, #onboardModal .close-x, #filesModal .close-x, #gitModal .close-x, #transcriptModal .close-x {
     background: var(--accent); color: var(--paper);
     border: 2.5px solid var(--ink); border-radius: 999px;
     width: 30px; height: 30px; font-size: 15px; font-weight: 900;
@@ -265,8 +266,8 @@
     cursor: pointer; box-shadow: 0 2px 0 var(--ink);
     transition: transform .1s; flex: 0 0 auto;
   }
-  #docModal .close-x:hover, #usageModal .close-x:hover, #tasksModal .close-x:hover, #onboardModal .close-x:hover, #filesModal .close-x:hover, #gitModal .close-x:hover, #transcriptModal .close-x:hover { transform: rotate(90deg); }
-  #docModal .doc-body, #usageModal .doc-body, #tasksModal .doc-body, #onboardModal .doc-body, #gitModal .doc-body, #transcriptModal .doc-body { flex: 1 1 auto; overflow-y: auto; padding: 16px 20px; min-height: 0; }
+  #docModal .close-x:hover, #usageModal .close-x:hover, #tasksModal .close-x:hover, #notesModal .close-x:hover, #onboardModal .close-x:hover, #filesModal .close-x:hover, #gitModal .close-x:hover, #transcriptModal .close-x:hover { transform: rotate(90deg); }
+  #docModal .doc-body, #usageModal .doc-body, #tasksModal .doc-body, #notesModal .doc-body, #onboardModal .doc-body, #gitModal .doc-body, #transcriptModal .doc-body { flex: 1 1 auto; overflow-y: auto; padding: 16px 20px; min-height: 0; }
   .tr-msg { border: 2.5px solid var(--ink); border-radius: 10px; padding: 8px 12px; margin: 0 0 10px; background: var(--paper-2); }
   .tr-msg.role-assistant { background: #eef3fb; }
   .tr-msg.role-user, .tr-msg.role-tool_result { background: #fdf3dd; }
@@ -510,12 +511,37 @@
   .pb-row.in-progress .pb-dot { background: var(--accent); animation: pulse 1.6s infinite; }
   .pb-row.done .pb-dot { background: var(--ok); }
   .pb-n { margin-left: auto; font-family: var(--mono); font-size: 10px; background: var(--ink); color: var(--paper); border-radius: 999px; padding: 0 6px; }
+  .pb-notes {
+    position: relative; z-index: 1; width: 100%; margin-top: 7px; padding: 5px 6px;
+    display: flex; align-items: center; gap: 6px; text-align: left;
+    border: 2px dashed var(--ink); border-radius: 6px; background: #fff2b8;
+    box-shadow: 1px 2px 0 rgba(0,0,0,.14);
+  }
+  .pb-notes:hover { background: #fff7d5; transform: rotate(-.4deg) translateY(-1px); }
+  .pb-notes-icon { font-size: 15px; flex: 0 0 auto; }
+  .pb-notes-copy { display: flex; min-width: 0; flex: 1 1 auto; flex-direction: column; line-height: 1.1; }
+  .pb-notes-label { font-size: 10px; font-weight: 900; color: var(--ink); }
+  .pb-notes-preview { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 8.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
   .pin { position: relative; background: #fffbe8; border: 2px solid var(--ink); padding: 4px 7px; font-size: 10px; font-weight: 700; color: var(--ink); width: 92%; margin: 4px 0; box-shadow: 2px 3px 0 rgba(0,0,0,.16); transform: rotate(var(--rot, 0deg)); animation: pinin .35s ease-out; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .pin::before { content: "●"; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); font-size: 13px; color: var(--accent); text-shadow: 0 1px 0 rgba(0,0,0,.2); }
   .pin.done { text-decoration: line-through; color: var(--ok); background: #e9f7e2; animation: pinok .5s ease-out; }
   @keyframes pinin { from { transform: scale(.2) rotate(40deg); opacity: 0; } }
   @keyframes pinok { 0%,100% { transform: rotate(var(--rot, 0deg)); } 50% { transform: rotate(var(--rot, 0deg)) scale(1.25); } }
-  #notes { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+  #notesModal .doc-panel { width: min(1060px, 96vw); }
+  #notesModal .doc-title { margin-right: auto; }
+  .notes-add { padding: 4px 11px; border-radius: 999px; font-size: 11px; background: #fff2b8; }
+  .notes-modal-body { overflow: auto !important; background: #e9dfc6; }
+  .notes-board {
+    position: relative; width: 960px; height: 540px; margin: 0 auto;
+    border: 3px solid var(--ink); border-radius: 10px; overflow: hidden;
+    background:
+      radial-gradient(circle at 25% 20%, rgba(255,255,255,.16), transparent 34%),
+      repeating-linear-gradient(45deg, rgba(47,36,24,.025) 0 2px, transparent 2px 7px),
+      #d8aa6a;
+    box-shadow: inset 0 0 22px rgba(47,36,24,.22), 0 4px 0 rgba(47,36,24,.18);
+    pointer-events: auto; flex: 0 0 auto;
+  }
+  .notes-board::after { content: ""; position: absolute; inset: 10px; border: 2px dashed rgba(47,36,24,.18); border-radius: 6px; pointer-events: none; }
   .sticky {
     position: absolute; width: 172px; min-height: 88px;
     background: hsl(var(--hue, 48) 92% 82%);
@@ -774,19 +800,6 @@
   .bin { position: absolute; left: 648px; bottom: 30px; width: 28px; height: 34px; background: linear-gradient(180deg, #8f9aa5, #737e89); border: 3.5px solid var(--ink); border-radius: 3px 3px 7px 7px; z-index: 2; }
   .bin::before { content: ""; position: absolute; left: -5px; right: -5px; top: -7px; height: 8px; background: #9aa5b0; border: 3px solid var(--ink); border-radius: 4px; }
   .bin::after { content: ""; position: absolute; left: 6px; right: 6px; top: 8px; bottom: 5px; background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(47,36,24,.3) 5px 7px); }
-  /* notepad — click to add a sticky note (bottom of the tasks pinboard) */
-  .notepad { position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); width: 40px; height: 34px; z-index: 3; cursor: pointer; transition: transform .12s cubic-bezier(.34,1.4,.5,1); }
-  .notepad:hover { transform: translateX(-50%) translateY(-3px) rotate(-2deg); }
-  .notepad:active { transform: translateX(-50%) translateY(0) scale(.95); }
-  .notepad .pad {
-    position: absolute; inset: 0;
-    background: #fff2b8; border: 3px solid var(--ink); border-radius: 4px;
-    box-shadow: 3px 3px 0 rgba(47,36,24,.2), inset 0 -6px 0 rgba(47,36,24,.06);
-    display: flex; align-items: center; justify-content: center;
-    transform: rotate(-3deg);
-  }
-  .notepad .pad::before { content: ""; position: absolute; left: 5px; right: 5px; top: 4px; height: 3px; background: rgba(47,36,24,.22); border-radius: 2px; }
-  .notepad .ico { font-size: 15px; line-height: 1; filter: saturate(1.1); }
   /* ---------- office chairs (behind the people, z below #chars) ---------- */
   .chair { position: absolute; width: 70px; height: 96px; z-index: 2; }
   .chair.k1 { left: 111px; top: 228px; }
