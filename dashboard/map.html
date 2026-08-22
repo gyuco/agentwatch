@@ -76,7 +76,13 @@
   <div class="nm-panel">
     <div class="nm-head">🏢 new office <span class="close-x" id="newClose" title="Close">✕</span></div>
     <div class="nm-field"><label for="ofName">name</label><input id="ofName" type="text" placeholder="e.g. acme" autocomplete="off"></div>
-    <div class="nm-field"><label for="ofPath">local path</label><input id="ofPath" type="text" placeholder="e.g. ~/work/acme" autocomplete="off"></div>
+    <div class="nm-field">
+      <label for="ofPath">local path</label>
+      <div class="nm-path-row">
+        <input id="ofPath" type="text" placeholder="e.g. ~/work/acme" autocomplete="off">
+        <button id="pickPath" type="button" title="Choose project directory" aria-label="Choose project directory">…</button>
+      </div>
+    </div>
     <p class="nm-hint">creates the folder with .claude/ ready for agents — hooks are installed automatically</p>
     <button id="newOk">create office</button>
   </div>

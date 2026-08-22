@@ -369,18 +369,39 @@ export function startServer({ collector, project, catalog, onRescan, onStop, onG
   })
 }
 
-export function startHubServer({ runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, defaultPort = 4579 } = {}) {
+async function chooseProjectDirectory() {
+  if (process.platform !== 'darwin') {
+    const err = new Error('directory picker is currently available on macOS only')
+    err.code = 'UNSUPPORTED_PLATFORM'
+    throw err
+  }
+  try {
+    const { stdout } = await execFileP('osascript', [
+      '-e',
+      'POSIX path of (choose folder with prompt "Choose the project directory")'
+    ], { timeout: 120000, maxBuffer: 64 * 1024 })
+    const selected = stdout.trim()
+    return selected === '/' ? selected : selected.replace(/\/$/, '')
+  } catch (err) {
+    const detail = String((err && err.stderr) || (err && err.message) || err)
+    if (detail.includes('User canceled') || detail.includes('(-128)')) return null
+    throw err
+  }
+}
+
+export function startHubServer({ runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, defaultPort = 4579, pickDirectory = chooseProjectDirectory } = {}) {
   return createApp({
     mode: 'hub',
     runnerPath,
     askRunnerPath,
     hooksEnabled,
     onStop,
-    defaultPort
+    defaultPort,
+    pickDirectory
   })
 }
 
-function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, defaultPort = 4579 }) {
+function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, defaultPort = 4579, pickDirectory = null }) {
   const contexts = new Map()
   const usageTicks = new Map()
   let port = defaultPort
@@ -991,6 +1012,16 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
           port,
           offices: [...contexts.values()].map(officeSummary)
         })
+        return
+      }
+      if (pathname === '/api/office/pick-directory' && req.method === 'POST') {
+        Promise.resolve()
+          .then(() => pickDirectory())
+          .then((path) => json(res, 200, path ? { path } : { cancelled: true }))
+          .catch((err) => {
+            const status = err && err.code === 'UNSUPPORTED_PLATFORM' ? 501 : 500
+            json(res, status, { error: String((err && err.message) || err) })
+          })
         return
       }
       if (pathname === '/api/office/new' && req.method === 'POST') {

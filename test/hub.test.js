@@ -59,7 +59,11 @@ test('hub: map at /, offices listing, per-office dashboard and APIs, office crea
   const officeB = addOffice({ name: 'Ufficio B', path: join(home, 'office-b') })
 
   let stopped = false
-  const app = startHubServer({ runnerPath: '/tmp/run-hook.js', onStop: () => { stopped = true } })
+  const app = startHubServer({
+    runnerPath: '/tmp/run-hook.js',
+    onStop: () => { stopped = true },
+    pickDirectory: async () => join(home, 'picked-office')
+  })
   await app.listen()
   t.after(() => app.close())
   const port = app.port()
@@ -79,6 +83,10 @@ test('hub: map at /, offices listing, per-office dashboard and APIs, office crea
   assert.equal(a.skills, 0)
   assert.equal(a.running, 0)
   assert.equal(a.url, '/office/ufficio-a')
+
+  const picked = await httpJson(port, '/api/office/pick-directory', { method: 'POST' })
+  assert.equal(picked.status, 200)
+  assert.equal(picked.json().path, join(home, 'picked-office'))
 
   const dash = await httpJson(port, '/office/ufficio-a/')
   assert.equal(dash.status, 200)

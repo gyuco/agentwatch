@@ -155,6 +155,29 @@ $('#newModal').addEventListener('keydown', (e) => {
 })
 $('#reload').addEventListener('click', load)
 
+$('#pickPath').addEventListener('click', async () => {
+  const btn = $('#pickPath')
+  btn.disabled = true
+  btn.classList.add('loading')
+  try {
+    const res = await fetch('/api/office/pick-directory', { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) {
+      alert(data.error || 'directory picker unavailable')
+      return
+    }
+    if (data.path) {
+      $('#ofPath').value = data.path
+      $('#ofPath').focus()
+    }
+  } catch {
+    alert('directory picker unavailable')
+  } finally {
+    btn.disabled = false
+    btn.classList.remove('loading')
+  }
+})
+
 $('#newOk').addEventListener('click', async () => {
   const name = $('#ofName').value.trim()
   const path = $('#ofPath').value.trim()
