@@ -276,6 +276,24 @@
   .tr-block.thinking { color: rgba(47,36,24,.55); font-style: italic; }
   .tr-tool { font-family: var(--mono); font-size: 11.5px; background: #2f2418; color: #ffe9b8; border-radius: 6px; padding: 6px 9px; overflow-x: auto; }
   .tr-tool .tr-tool-name { color: #7fd0ff; font-weight: 800; }
+  #teamModal .doc-title { margin-right: auto; }
+  .team-manage-btn { flex: 0 0 auto; padding: 4px 11px; border-radius: 999px; font-size: 11px; background: #fff2b8; }
+  .team-manage-btn.active { background: var(--accent); color: var(--paper); }
+  .team-manager { display: none; margin-bottom: 18px; padding: 14px; border: 2.5px solid var(--ink); border-radius: 12px; background: var(--paper-2); box-shadow: 0 3px 0 rgba(47,36,24,.18); }
+  .team-manager.open { display: block; }
+  .team-manager p { margin: 0 0 9px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  #teamPrompt {
+    display: block; width: 100%; min-height: 300px; resize: vertical; box-sizing: border-box;
+    padding: 11px 12px; border: 2.5px solid var(--ink); border-radius: 9px;
+    background: #fff; color: var(--text); font-family: var(--mono); font-size: 11.5px; line-height: 1.5;
+  }
+  #teamPrompt:focus { outline: 3px solid rgba(245,158,11,.35); }
+  .team-manager-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .team-manager-actions button { font-size: 11.5px; }
+  .team-manager-actions #teamPromptSend { background: var(--ok); color: var(--paper); }
+  .team-manager-actions .team-prompt-reset { margin-left: auto; }
+  .team-manager-actions button:disabled { opacity: .55; cursor: wait; }
+  .team-manager-status { min-height: 17px; margin-top: 10px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
   .team-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
   .team-member { margin: 0; }
   .doc-body .md { font-size: 13.5px; line-height: 1.6; color: var(--text); }

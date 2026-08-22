@@ -97,9 +97,22 @@
   <div class="doc-panel">
     <div class="doc-head">
       <span class="doc-title" id="teamTitle">🤖 team</span>
+      <button class="team-manage-btn" id="teamManageBtn" title="Review or change the project team">⚙️ manage team</button>
       <span class="close-x" id="teamClose" title="Close">✕</span>
     </div>
-    <div class="doc-body" id="teamBody"><div class="empty">no subagents present</div></div>
+    <div class="doc-body" id="teamBody">
+      <div class="team-manager" id="teamManager">
+        <p>Review the prompt before sending it to the main desk, or copy it into your CLI.</p>
+        <textarea id="teamPrompt" spellcheck="true" aria-label="Team management prompt"></textarea>
+        <div class="team-manager-actions">
+          <button id="teamPromptSend">▶ send to main desk</button>
+          <button id="teamPromptCopy">📋 copy for CLI</button>
+          <button class="team-prompt-reset" id="teamPromptReset">↺ reset</button>
+        </div>
+        <div class="team-manager-status" id="teamManagerStatus" aria-live="polite"></div>
+      </div>
+      <div id="teamRoster"><div class="empty">no subagents present</div></div>
+    </div>
   </div>
 </div>
 <div id="filesModal">

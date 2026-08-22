@@ -7,6 +7,23 @@ const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
 const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
 
+const TEAM_MANAGEMENT_PROMPT = `You are the main agent for this project. Help the user review and manage the project's AI collaboration setup without assuming any development methodology, document naming convention, or standard team structure.
+
+Work interactively. Do not create, modify, or remove files until you have presented a plan and the user has explicitly confirmed it.
+
+1. Inspect the repository and discover the documentation that actually exists, regardless of file names or locations. Include README files, CLAUDE.md, technical documentation, product notes, contribution guides, and relevant configuration.
+2. Summarize what is clear about the project's purpose, stack, constraints, current development process, and existing AI setup. If important context is missing or ambiguous, ask focused questions about the project and wait for the answers before proposing changes.
+3. Inspect the existing Claude configuration, including agents, skills, CLAUDE.md instructions, workflows, and project MCP servers. Identify useful, missing, duplicated, or obsolete elements.
+4. Ask the user what agents, skills, workflow guidance, and MCP integrations they want. Offer project-specific suggestions, explain why each one would help, and call out MCP permissions, credentials, security, and maintenance implications.
+5. Present an editable proposal covering:
+   - agents and their responsibilities, boundaries, tools, and models;
+   - reusable skills and when they should be invoked;
+   - the collaboration workflow and project instructions to save in CLAUDE.md;
+   - MCP servers, their purpose, configuration, and required permissions;
+   - every file that would be created, modified, or removed.
+6. Ask for explicit confirmation of the final proposal. After confirmation, implement only the approved changes using the project's native Claude configuration. Preserve unrelated content, avoid destructive overwrites, and validate the resulting configuration.
+7. Finish with a concise summary of what changed, what was left unchanged, and any manual setup still required.`
+
 const AGW = (window.AGW_PREFIX || '').replace(/\/+$/, '')
 const api = (p) => AGW + p
 
@@ -878,7 +895,7 @@ function renderTeam() {
   const configuredTypes = new Set(configured.map((a) => a.id))
   const active = [...state.byId.values()].filter((a) => !a.isMain && agentPresent(a))
   const extraActive = active.filter((a) => !configuredTypes.has(a.type))
-  const body = $('#teamBody')
+  const body = $('#teamRoster')
   if (!body) return
   $('#teamTitle').textContent = `🤖 team · ${configured.length} configured · ${active.length} active`
   const configuredHtml = configured.map((a) => {
@@ -1140,7 +1157,7 @@ $('#agentList').addEventListener('click', (e) => {
   else seatAgent(type)
 })
 
-$('#teamBody').addEventListener('click', (e) => {
+$('#teamRoster').addEventListener('click', (e) => {
   const btn = e.target.closest('.seat-btn')
   if (!btn) return
   const seated = seatByType(btn.dataset.type)
@@ -1817,11 +1834,95 @@ cabinetEl.querySelector('.d1').addEventListener('click', (e) => {
 
 function openTeam() {
   renderTeam()
+  if (!$('#teamPrompt').value.trim()) $('#teamPrompt').value = TEAM_MANAGEMENT_PROMPT
   $('#teamModal').classList.add('open')
 }
 function closeTeam() { $('#teamModal').classList.remove('open') }
 $('#teamClose').addEventListener('click', closeTeam)
 $('#teamModal .backdrop').addEventListener('click', closeTeam)
+
+function setTeamManagerOpen(open) {
+  $('#teamManager').classList.toggle('open', open)
+  $('#teamManageBtn').classList.toggle('active', open)
+  $('#teamManageBtn').textContent = open ? '✕ close manager' : '⚙️ manage team'
+  if (open) {
+    if (!$('#teamPrompt').value.trim()) $('#teamPrompt').value = TEAM_MANAGEMENT_PROMPT
+    $('#teamPrompt').focus()
+  }
+}
+
+$('#teamManageBtn').addEventListener('click', () => {
+  setTeamManagerOpen(!$('#teamManager').classList.contains('open'))
+})
+
+$('#teamPromptReset').addEventListener('click', () => {
+  const prompt = $('#teamPrompt')
+  if (prompt.value !== TEAM_MANAGEMENT_PROMPT && !confirm('reset your edits to the default team management prompt?')) return
+  prompt.value = TEAM_MANAGEMENT_PROMPT
+  $('#teamManagerStatus').textContent = 'prompt reset'
+})
+
+async function copyTeamPrompt() {
+  const prompt = $('#teamPrompt')
+  const text = prompt.value.trim()
+  if (!text) {
+    $('#teamManagerStatus').textContent = 'write a prompt before copying it'
+    return
+  }
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('clipboard API unavailable')
+    await navigator.clipboard.writeText(text)
+  } catch {
+    prompt.focus()
+    prompt.select()
+    if (!document.execCommand('copy')) {
+      $('#teamManagerStatus').textContent = 'could not copy automatically — select the prompt and copy it manually'
+      return
+    }
+  }
+  $('#teamManagerStatus').textContent = 'copied — paste the prompt into your main agent CLI'
+}
+
+async function sendTeamPrompt() {
+  const prompt = $('#teamPrompt').value.trim()
+  const status = $('#teamManagerStatus')
+  const btn = $('#teamPromptSend')
+  if (!prompt) {
+    status.textContent = 'write a prompt before sending it'
+    return
+  }
+  btn.disabled = true
+  status.textContent = 'preparing the main desk…'
+  try {
+    let seat = [...state.seats.values()].find((s) => s.desk === 'maindesk')
+    if (!seat) {
+      await seatMain()
+      seat = [...state.seats.values()].find((s) => s.desk === 'maindesk')
+    }
+    if (!seat) {
+      status.textContent = 'the main desk cannot receive dashboard messages — copy the prompt and use it in the CLI'
+      return
+    }
+    openConsole(seat.sessionKey)
+    const res = await fetch(api('/api/desk/send'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionKey: seat.sessionKey, message: prompt })
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || 'main desk rejected the prompt')
+    }
+    status.textContent = 'sent to the main desk — continue the conversation in its console'
+  } catch (e) {
+    status.textContent = 'could not send: ' + String(e && e.message || e)
+  } finally {
+    btn.disabled = false
+  }
+}
+
+$('#teamPromptCopy').addEventListener('click', copyTeamPrompt)
+$('#teamPromptSend').addEventListener('click', sendTeamPrompt)
 
 const fileIcon = (name, type) => {
   if (type === 'dir') return '📁'
