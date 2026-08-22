@@ -28,6 +28,7 @@ const SDK_DESKS = ['d1', 'd2', 'd3', 'd4', 'd5']
 const MAIN_DESK = 'maindesk'
 const SDK_PERMISSION = process.env.AGENTWATCH_PERMISSION || 'bypassPermissions'
 const STALE_MS = 3 * 60 * 1000
+const ASK_TTL_MS = 5 * 60 * 1000
 
 function appendEvent(root, event) {
   const file = queueFile(root)
@@ -431,6 +432,11 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       json(res, 400, { error: 'id and question required' })
       return
     }
+    const createdAt = Date.now()
+    const requestedExpiry = Number(body.expiresAt)
+    const expiresAt = Number.isFinite(requestedExpiry) && requestedExpiry > createdAt
+      ? Math.min(requestedExpiry, createdAt + ASK_TTL_MS)
+      : createdAt + ASK_TTL_MS
     const ask = {
       id,
       sessionId: String(body.sessionId || ''),
@@ -440,11 +446,19 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       header: String(body.header || ''),
       options: Array.isArray(body.options) ? body.options.map(String).slice(0, 5) : [],
       answer: null,
-      createdAt: Date.now()
+      createdAt,
+      expiresAt
     }
     ctx.pendingAsks.set(id, ask)
     if (ctx.pendingAsks.size > 50) ctx.pendingAsks.delete(ctx.pendingAsks.keys().next().value)
     broadcastTo(ctx, 'ask', { kind: 'asked', ...ask })
+    const expiryTimer = setTimeout(() => {
+      const current = ctx.pendingAsks.get(id)
+      if (!current || current.expiresAt !== expiresAt) return
+      ctx.pendingAsks.delete(id)
+      if (current.answer == null) broadcastTo(ctx, 'ask', { kind: 'expired', id })
+    }, Math.max(0, expiresAt - Date.now()))
+    expiryTimer.unref()
     json(res, 200, { ok: true })
   }
 
@@ -456,7 +470,6 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       return
     }
     json(res, 200, { answered: true, option: ask.answer })
-    ctx.pendingAsks.delete(id)
   }
 
   function handleAskAnswer(ctx, body, res) {
@@ -469,6 +482,14 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     }
     if (!option) {
       json(res, 400, { error: 'option required' })
+      return
+    }
+    if (ask.answer != null) {
+      if (ask.answer === option) {
+        json(res, 200, { ok: true, duplicate: true })
+      } else {
+        json(res, 409, { error: 'question already answered' })
+      }
       return
     }
     ask.answer = option

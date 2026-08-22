@@ -111,6 +111,34 @@ test('/api/ask/answer 404s for an unknown id', async (t) => {
   })
 })
 
+test('answering the same question twice is idempotent', async (t) => {
+  await withServer(t, async ({ port }) => {
+    await httpJson(port, '/api/ask/create', { method: 'POST', body: { id: 'q3', question: 'Proceed?' } })
+
+    const first = await httpJson(port, '/api/ask/answer', { method: 'POST', body: { id: 'q3', option: 'Yes' } })
+    const duplicate = await httpJson(port, '/api/ask/answer', { method: 'POST', body: { id: 'q3', option: 'Yes' } })
+    const conflict = await httpJson(port, '/api/ask/answer', { method: 'POST', body: { id: 'q3', option: 'No' } })
+
+    assert.equal(first.status, 200)
+    assert.equal(duplicate.status, 200)
+    assert.equal(duplicate.body.duplicate, true)
+    assert.equal(conflict.status, 409)
+  })
+})
+
+test('expired unanswered questions are removed from dashboard state', async (t) => {
+  await withServer(t, async ({ port }) => {
+    await httpJson(port, '/api/ask/create', {
+      method: 'POST',
+      body: { id: 'q4', question: 'Still there?', expiresAt: Date.now() + 30 }
+    })
+    await new Promise((resolve) => setTimeout(resolve, 60))
+
+    const state = await httpJson(port, '/api/state')
+    assert.equal(state.body.asks.some((ask) => ask.id === 'q4'), false)
+  })
+})
+
 function runAskHook({ project, payload }) {
   return new Promise((resolve, reject) => {
     const child = spawn('node', [join(import.meta.dirname, '..', 'src', 'ask-hook.js')], {
@@ -150,7 +178,7 @@ test('ask-hook allows immediately for non-question tools', async () => {
   assert.equal(decision.hookSpecificOutput.permissionDecision, 'allow')
 })
 
-test('ask-hook denies with the dashboard answer once one is posted', async (t) => {
+test('ask-hook allows with the native dashboard answer once one is posted', async (t) => {
   const project = fixture()
   const collector = new EventCollector()
   const catalog = scanCatalog(project)
@@ -179,6 +207,24 @@ test('ask-hook denies with the dashboard answer once one is posted', async (t) =
 
   const { out } = await hookPromise
   const decision = JSON.parse(out)
-  assert.equal(decision.hookSpecificOutput.permissionDecision, 'deny')
-  assert.match(decision.hookSpecificOutput.permissionDecisionReason, /Yes/)
+  assert.equal(decision.hookSpecificOutput.permissionDecision, 'allow')
+  assert.deepEqual(decision.hookSpecificOutput.updatedInput, {
+    questions: [{ question: 'Deploy to prod?', options: ['Yes', 'No'] }],
+    answers: { 'Deploy to prod?': 'Yes' }
+  })
+})
+
+test('ask-hook leaves unsupported multi-question input to the terminal', async () => {
+  const project = fixture()
+  const { out } = await runAskHook({
+    project,
+    payload: {
+      tool_name: 'AskUserQuestion',
+      tool_input: { questions: [{ question: 'One?' }, { question: 'Two?' }] },
+      session_id: 's1'
+    }
+  })
+  const decision = JSON.parse(out)
+  assert.equal(decision.hookSpecificOutput.permissionDecision, 'allow')
+  assert.equal(decision.hookSpecificOutput.updatedInput, undefined)
 })

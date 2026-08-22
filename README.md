@@ -71,12 +71,13 @@ on `PreToolUse`:
    reaches the hub, which routes the question to the office that owns the
    project — the alert appears in that office's dashboard.
 2. Picking an option in the dashboard calls `POST /api/ask/answer`.
-3. The hook then **denies** the tool call, returning the chosen answer as the
-   denial reason. Claude Code passes that reason back to the model as feedback,
-   which reads it as the user's answer and continues — there is no documented
-   way for a hook to substitute a tool's actual result, so this is the closest
-   practical equivalent.
-4. If the dashboard is closed or nobody answers before the timeout, the hook
+3. The hook returns `permissionDecision: "allow"` with the original tool input
+   plus the selected value in `updatedInput.answers`. Claude Code receives the
+   same structured answer it would receive from its terminal prompt.
+4. Questions containing multiple prompts or multi-select choices are left to
+   the terminal because the dashboard currently presents one single-choice
+   prompt at a time.
+5. If the dashboard is closed or nobody answers before the timeout, the hook
    allows the call through unchanged, and the normal terminal prompt appears.
 
 ## How it works

@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, notes: [] }
+const state = { catalog: { agents: [], skills: [] }, events: [], byId: new Map(), tasks: [], stories: [], tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [] }
 
 const AGW = (window.AGW_PREFIX || '').replace(/\/+$/, '')
 const api = (p) => AGW + p
@@ -15,28 +15,56 @@ const ASK_TOOLS = new Set(['AskUserQuestion', 'Question'])
 const seatByType = (agentType) => [...state.seats.values()].find((s) => s.agentType === agentType)
 
 function showAskAlert(ask) {
+  if (!ask || !ask.id) return
+  const existing = state.askQueue.findIndex((item) => item.id === ask.id)
+  if (existing >= 0) state.askQueue[existing] = ask
+  else state.askQueue.push(ask)
+  if (state.pendingAsk && state.pendingAsk.id !== ask.id) return
   state.pendingAsk = ask
   $('#askAlert .ask-q').textContent = ask.question || '…'
   $('#askAlert .ask-opts').innerHTML = (ask.options || [])
     .map((o) => `<button type="button" class="ask-opt" data-option="${esc(o)}">${esc(o)}</button>`)
     .join('')
   $('#askCustomInput').value = ''
+  $('#askAlert .ask-hint').textContent = state.askQueue.length > 1
+    ? `${state.askQueue.length - 1} more question${state.askQueue.length === 2 ? '' : 's'} waiting`
+    : 'answer here, or in the Claude Code terminal'
+  for (const el of document.querySelectorAll('#askAlert button, #askCustomInput')) el.disabled = false
   $('#askAlert').classList.add('show')
 }
 
-function hideAskAlert() {
+function removeAsk(id) {
+  state.askQueue = state.askQueue.filter((ask) => ask.id !== id)
+  if (!state.pendingAsk || state.pendingAsk.id !== id) return
+  state.pendingAsk = null
+  const next = state.askQueue[0]
+  if (next) showAskAlert(next)
+  else $('#askAlert').classList.remove('show')
+}
+
+function replaceAskQueue(asks) {
+  state.askQueue = []
   state.pendingAsk = null
   $('#askAlert').classList.remove('show')
+  for (const ask of asks || []) showAskAlert(ask)
 }
 
 async function answerAsk(id, option) {
   if (!id || !option) return
+  for (const el of document.querySelectorAll('#askAlert button, #askCustomInput')) el.disabled = true
+  $('#askAlert .ask-hint').textContent = 'sending answer…'
   try {
-    await fetch(api('/api/ask/answer'), {
+    const res = await fetch(api('/api/ask/answer'), {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, option })
     })
-  } catch {}
-  hideAskAlert()
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    removeAsk(id)
+  } catch {
+    if (state.pendingAsk && state.pendingAsk.id === id) {
+      $('#askAlert .ask-hint').textContent = 'answer not sent — check the connection and try again'
+      for (const el of document.querySelectorAll('#askAlert button, #askCustomInput')) el.disabled = false
+    }
+  }
 }
 
 $('#askAlert .ask-opts').addEventListener('click', (e) => {
@@ -969,9 +997,7 @@ function applySnapshot(snap) {
   for (const s of snap.seats || []) {
     state.seats.set(s.sessionKey, { sessionKey: s.sessionKey, agentType: s.agentType, desk: s.desk, history: s.history || [], busy: false, contextUsage: s.contextUsage || null })
   }
-  const pending = (snap.asks || [])[0]
-  if (pending) showAskAlert(pending)
-  else hideAskAlert()
+  replaceAskQueue(snap.asks)
   render()
   for (const seat of state.seats.values()) {
     const existing = state.byId.get(seat.sessionKey)
@@ -1031,7 +1057,7 @@ function connect() {
   es.addEventListener('ask', (e) => {
     const d = JSON.parse(e.data)
     if (d.kind === 'asked') showAskAlert(d)
-    else if (d.kind === 'answered' && state.pendingAsk && state.pendingAsk.id === d.id) hideAskAlert()
+    else if (d.kind === 'answered' || d.kind === 'expired') removeAsk(d.id)
   })
   es.addEventListener('usage', (e) => {
     state.usage = JSON.parse(e.data)
@@ -1481,7 +1507,6 @@ $('#agentsBtn').addEventListener('click', () => openCatalog('agents'))
 $('#skillsBtn').addEventListener('click', () => openCatalog('skills'))
 document.querySelectorAll('.mtab').forEach((b) => b.addEventListener('click', () => setCatalogTab(b.dataset.tab)))
 $('#modalClose').addEventListener('click', closeCatalog)
-$('#askClose').addEventListener('click', hideAskAlert)
 $('#modal .backdrop').addEventListener('click', closeCatalog)
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCatalog(); closeDoc(); closeUsage(); closeTasks(); closeConsole(); closeGit(); closeCall() } })
 document.addEventListener('keydown', (e) => {

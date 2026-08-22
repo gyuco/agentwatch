@@ -39,12 +39,15 @@ function readHubPort() {
 
 function askFromInput(input = {}) {
   const qs = Array.isArray(input.questions) && input.questions.length ? input.questions : [input]
+  if (qs.length !== 1) return null
   const first = qs[0]
   if (!first || typeof first !== 'object') return null
+  if (first.multiSelect === true) return null
   const q = typeof first.question === 'string' ? first.question : first.prompt
   if (!q) return null
   return {
-    question: q.slice(0, 300),
+    question: q,
+    displayQuestion: q.slice(0, 300),
     header: typeof first.header === 'string' ? first.header : '',
     options: Array.isArray(first.options)
       ? first.options.map((o) => (typeof o === 'string' ? o : (o && o.label) || '')).filter(Boolean).slice(0, 5)
@@ -57,14 +60,17 @@ function allow() {
   process.exit(0)
 }
 
-function denyWithAnswer(option) {
-  const reason = `The user answered this question from the agentwatch dashboard: "${option}". Treat this as the user's response and continue the conversation accordingly — do not ask the question again.`
+function allowWithAnswer(toolInput, question, option) {
+  const previousAnswers = toolInput.answers && typeof toolInput.answers === 'object' ? toolInput.answers : {}
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: reason
+        permissionDecision: 'allow',
+        updatedInput: {
+          ...toolInput,
+          answers: { ...previousAnswers, [question]: option }
+        }
       }
     })
   )
@@ -100,7 +106,7 @@ async function main() {
     sessionId: payload.session_id || '',
     agentId: payload.agent_id || 'main',
     agentType: payload.agent_type || 'main',
-    question: ask.question,
+    question: ask.displayQuestion,
     header: ask.header,
     options: ask.options,
     project: root
@@ -129,7 +135,7 @@ async function main() {
       const res = await fetch(`${base}/api/ask/poll?id=${encodeURIComponent(id)}&project=${encodeURIComponent(root)}`)
       if (res.ok) {
         const data = await res.json()
-        if (data && data.answered) return denyWithAnswer(data.option || '')
+        if (data && data.answered) return allowWithAnswer(payload.tool_input, ask.question, data.option || '')
       }
     } catch {
       return allow()
