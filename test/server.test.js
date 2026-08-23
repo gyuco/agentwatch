@@ -132,6 +132,51 @@ test('transcript resolves subagents unknown to the collector via the main sessio
   assert.equal(ghost.json().found, false)
 })
 
+test('agent meeting seats participants, shares turns, and keeps a transcript', async (t) => {
+  const root = fixture()
+  const queryAgent = ({ prompt, options }) => (async function * () {
+    yield {
+      type: 'assistant',
+      session_id: `session-${options.agent}`,
+      message: { content: [{ type: 'text', text: `${options.agent} contribution about ${prompt.includes('Conversation so far:') ? 'the discussion' : 'the topic'}` }] }
+    }
+    yield { type: 'result', result: 'done', duration_ms: 5, total_cost_usd: 0, usage: {} }
+  })()
+  const catalog = {
+    agents: [
+      { id: 'architect', name: 'Architect', tools: [] },
+      { id: 'reviewer', name: 'Reviewer', tools: [] }
+    ],
+    skills: [],
+    mcps: []
+  }
+  const app = startServer({ collector: new EventCollector(), project: root, catalog, queryAgent })
+  await app.listen()
+  t.after(() => app.close())
+  const port = app.port()
+
+  const started = await httpJson(port, '/api/meeting/start', {
+    method: 'POST',
+    body: { topic: 'Choose the safest API design', participants: ['architect', 'reviewer'], rounds: 2 }
+  })
+  assert.equal(started.status, 200)
+  assert.equal(started.json().meeting.status, 'running')
+
+  let meeting
+  for (let i = 0; i < 20; i++) {
+    const current = await httpJson(port, '/api/state')
+    meeting = current.json().meeting
+    if (meeting.status !== 'running') break
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
+  assert.equal(meeting.status, 'completed')
+  assert.equal(meeting.transcript.length, 4)
+  assert.deepEqual(meeting.transcript.map((line) => line.agentId), ['architect', 'reviewer', 'architect', 'reviewer'])
+  assert.equal(meeting.transcript[3].text.includes('the discussion'), true)
+  const state = await httpJson(port, '/api/state')
+  assert.equal(state.json().seats.length, 0)
+})
+
 test('calendar events persist in the workspace and can be deleted', async (t) => {
   const root = fixture()
   const app = startServer({ collector: new EventCollector(), project: root, catalog: { agents: [], skills: [] } })

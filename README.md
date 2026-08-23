@@ -50,8 +50,26 @@ agent, skill, MCP suggestion, and workflow before anything is installed.
   with a use counter.
 - **Tasks**: live `TaskCreated` / `TaskCompleted` chips plus a read-only Markdown
   Kanban whose paths and status columns come from `agentwatch.tasks.json`.
+- **Agent meetings**: choose two or more configured agents, give them a topic,
+  and watch a structured multi-round discussion with live speakers, elapsed
+  time, and a shared transcript. Meeting agents are temporarily seated in the
+  office and leave their desks when the meeting ends.
 - **Feed**: timestamped event timeline, filterable by main/subagents/skills/
   errors, searchable, per-agent on card click.
+
+## Agent meetings
+
+Open the **meeting** icon on the main agent's monitor, enter the topic, choose two to five
+configured project agents, and select one to three rounds. Participants speak
+in order; before each turn, the agent receives the topic and the conversation
+so far, so later contributions can react to earlier ones. The meeting modal can
+be minimized without stopping the discussion and restored from the same
+button.
+
+Meetings are discussion-only: their SDK sessions run with built-in tools
+disabled. The live meeting state survives a dashboard refresh while the server
+is running, and the final transcript remains available until a new meeting is
+started.
 
 ## Commands
 

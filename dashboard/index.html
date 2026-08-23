@@ -68,6 +68,41 @@
     <button class="rescan-note" id="rescan2">↻ rescan catalog</button>
   </div>
 </div>
+<div id="meetingModal">
+  <div class="backdrop"></div>
+  <div class="meeting-panel">
+    <div class="meeting-head">
+      <span class="meeting-live" id="meetingLive"></span>
+      <span class="meeting-title">agent meeting</span>
+      <span class="meeting-timer" id="meetingTimer">00:00</span>
+      <span class="close-x" id="meetingClose" title="Minimize meeting">✕</span>
+    </div>
+    <div class="meeting-setup" id="meetingSetup">
+      <label>Topic or decision to discuss
+        <textarea id="meetingTopic" maxlength="2000" placeholder="e.g. Review the proposed API design and agree on risks, tests, and next steps."></textarea>
+      </label>
+      <div class="meeting-options">
+        <label>Rounds
+          <select id="meetingRounds"><option value="1">1 · quick</option><option value="2" selected>2 · discussion</option><option value="3">3 · deep</option></select>
+        </label>
+        <span>Each agent hears the previous contributions before speaking.</span>
+      </div>
+      <fieldset><legend>Participants · choose at least two</legend><div id="meetingAgentList"></div></fieldset>
+      <div class="meeting-error" id="meetingError" aria-live="polite"></div>
+      <button class="meeting-start" id="meetingStart">▶ start meeting</button>
+    </div>
+    <div class="meeting-active" id="meetingActive" hidden>
+      <div class="meeting-topic-view" id="meetingTopicView"></div>
+      <div class="meeting-roster" id="meetingRoster"></div>
+      <div class="meeting-transcript" id="meetingTranscript"><div class="empty">waiting for the first speaker…</div></div>
+      <div class="meeting-actions">
+        <span id="meetingStatus">preparing meeting…</span>
+        <button class="meeting-new" id="meetingNew" hidden>＋ new meeting</button>
+        <button class="meeting-end" id="meetingEnd">■ end meeting</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="docModal">
   <div class="backdrop"></div>
   <div class="doc-panel">
@@ -320,7 +355,7 @@
         <div class="desk d3" style="--hue:300"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname"></div></div>
         <div class="desk d4" style="--hue:25"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname"></div></div>
         <div class="desk d5" style="--hue:100"><div class="divider"></div><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="dname"></div></div>
-        <div class="desk maindesk" style="--hue:40"><div class="monitor"><div class="screen">idle</div><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="phone" id="deskPhone" title="the CEO wants to talk to you ☎️"><div class="pbase"><div class="pkeys"></div></div><div class="pcord"></div><div class="phandset"></div><div class="pring r1"></div><div class="pring r2"></div></div><div class="dname"></div></div>
+        <div class="desk maindesk" style="--hue:40"><div class="monitor"><div class="screen">idle</div><button id="meetingBtn" type="button" title="Start or open an agent meeting" aria-label="Start or open an agent meeting">🗣</button><div class="stand"></div><div class="base"></div></div><div class="deck"></div><div class="mug"></div><div class="papers"></div><div class="pens"></div><div class="keyboard"></div><div class="mouse"></div><div class="top"></div><div class="dleg l"></div><div class="dleg r"></div><div class="front"></div><div class="phone" id="deskPhone" title="the CEO wants to talk to you ☎️"><div class="pbase"><div class="pkeys"></div></div><div class="pcord"></div><div class="phandset"></div><div class="pring r1"></div><div class="pring r2"></div></div><div class="dname"></div></div>
         <div id="chars"></div>
         <div id="fx"></div>
       </div>

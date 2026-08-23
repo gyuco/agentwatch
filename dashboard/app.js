@@ -5,7 +5,7 @@ const time = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour12: false })
 const dur = (ms) => { const s = Math.floor(ms / 1000); return s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s` }
 const elapsed = (ts) => Math.max(0, Date.now() - ts)
 
-const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], taskBoard: { columns: [], tasks: [], sources: [] }, tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [], calendarEvents: [] }
+const state = { catalog: { agents: [], skills: [], mcps: [] }, events: [], byId: new Map(), tasks: [], stories: [], taskBoard: { columns: [], tasks: [], sources: [] }, tasksFilter: 'all', connected: false, filter: 'all', filterAgent: null, search: '', seats: new Map(), pendingAsk: null, askQueue: [], notes: [], calendarEvents: [], meeting: null }
 
 const TEAM_MANAGEMENT_PROMPT = `You are the main agent for this project. Help the user review and manage the project's AI collaboration setup without assuming any development methodology, document naming convention, or standard team structure.
 
@@ -713,6 +713,7 @@ function updateMainDesk() {
 
 function tickOffice() {
   updateMainDesk()
+  updateMeetingTimer()
   const now = Date.now()
   for (const c of office.chars.values()) {
     if (!c.slot) continue
@@ -1077,6 +1078,7 @@ function applySnapshot(snap) {
   }
   state.events = snap.events.slice().reverse()
   state.tasks = snap.tasks
+  state.meeting = snap.meeting || null
   state.seats.clear()
   for (const s of snap.seats || []) {
     state.seats.set(s.sessionKey, { sessionKey: s.sessionKey, agentType: s.agentType, desk: s.desk, history: s.history || [], busy: false, contextUsage: s.contextUsage || null })
@@ -1105,7 +1107,168 @@ function applySnapshot(snap) {
   }
   fitOffice()
   updateMainDesk()
+  renderMeeting()
 }
+
+function meetingRunning() {
+  return state.meeting && state.meeting.status === 'running'
+}
+
+function updateMeetingTimer() {
+  const meeting = state.meeting
+  const end = meeting && (meeting.endedAt || Date.now())
+  const total = meeting ? Math.max(0, end - meeting.startedAt) : 0
+  const seconds = Math.floor(total / 1000)
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const rest = seconds % 60
+  $('#meetingTimer').textContent = hours
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
+}
+
+function renderMeetingAgents() {
+  const agents = state.catalog.agents || []
+  $('#meetingAgentList').innerHTML = agents.length
+    ? agents.map((agent, index) => `<label class="meeting-agent">
+        <input type="checkbox" value="${esc(agent.id)}" ${index < Math.min(3, agents.length) ? 'checked' : ''}>
+        <span class="ava" style="--hue:${hueFor(agent.id)}"></span><b>${esc(agent.name || agent.id)}</b>
+      </label>`).join('')
+    : '<div class="empty">No configured agents. Add agents from the catalog first.</div>'
+}
+
+function renderMeeting() {
+  const meeting = state.meeting
+  const running = meetingRunning()
+  $('#meetingBtn').classList.toggle('active', Boolean(meeting))
+  $('#meetingBtn').classList.toggle('running', running)
+  $('#meetingBtn').title = running ? 'Agent meeting in progress — open' : 'Start or open an agent meeting'
+  $('#meetingBtn').setAttribute('aria-label', $('#meetingBtn').title)
+  $('#meetingLive').classList.toggle('on', running)
+  $('#meetingSetup').hidden = Boolean(meeting)
+  $('#meetingActive').hidden = !meeting
+  if (!meeting) {
+    updateMeetingTimer()
+    return
+  }
+  $('#meetingTopicView').textContent = meeting.topic
+  $('#meetingRoster').innerHTML = (meeting.participants || []).map((participant) =>
+    `<span class="meeting-person ${meeting.currentSpeaker === participant.id ? 'speaking' : ''}">
+      <span class="ava" style="--hue:${hueFor(participant.id)}"></span>${esc(participant.name)}
+    </span>`
+  ).join('')
+  const transcript = meeting.transcript || []
+  $('#meetingTranscript').innerHTML = transcript.length
+    ? transcript.map((line) => `<article class="meeting-line ${line.error ? 'error' : ''}">
+        <div class="meeting-line-head"><span>${esc(line.agentName)}</span><span>round ${line.round}</span><time>${time(line.at)}</time></div>
+        <p>${esc(line.text)}</p>
+      </article>`).join('')
+    : '<div class="empty">waiting for the first speaker…</div>'
+  const labels = {
+    running: meeting.currentSpeaker ? `${meeting.participants.find((p) => p.id === meeting.currentSpeaker)?.name || meeting.currentSpeaker} is speaking · round ${meeting.round}/${meeting.rounds}` : 'preparing meeting…',
+    completed: `meeting completed · ${transcript.length} contributions`,
+    cancelled: 'meeting ended',
+    failed: `meeting failed${meeting.error ? ': ' + meeting.error : ''}`
+  }
+  $('#meetingStatus').textContent = labels[meeting.status] || meeting.status
+  $('#meetingEnd').hidden = !running
+  $('#meetingNew').hidden = running
+  updateMeetingTimer()
+}
+
+function openMeeting() {
+  if (!state.meeting) renderMeetingAgents()
+  renderMeeting()
+  $('#meetingModal').classList.add('open')
+  if (!state.meeting) $('#meetingTopic').focus()
+}
+
+function closeMeeting() {
+  $('#meetingModal').classList.remove('open')
+}
+
+async function startMeeting() {
+  const topic = $('#meetingTopic').value.trim()
+  const participants = [...document.querySelectorAll('#meetingAgentList input:checked')].map((input) => input.value)
+  $('#meetingError').textContent = ''
+  if (!topic || participants.length < 2) {
+    $('#meetingError').textContent = !topic ? 'Write a topic for the meeting.' : 'Select at least two agents.'
+    return
+  }
+  const button = $('#meetingStart')
+  button.disabled = true
+  button.textContent = 'starting…'
+  try {
+    const response = await fetch(api('/api/meeting/start'), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ topic, participants, rounds: Number($('#meetingRounds').value) })
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    state.meeting = data.meeting
+    renderMeeting()
+  } catch (err) {
+    $('#meetingError').textContent = String((err && err.message) || err)
+  } finally {
+    button.disabled = false
+    button.textContent = '▶ start meeting'
+  }
+}
+
+async function endMeeting() {
+  if (!meetingRunning() || !confirm('End the meeting now?')) return
+  $('#meetingEnd').disabled = true
+  try {
+    const response = await fetch(api('/api/meeting/end'), { method: 'POST' })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
+    state.meeting = data.meeting
+    renderMeeting()
+  } catch (err) {
+    $('#meetingStatus').textContent = String((err && err.message) || err)
+  } finally {
+    $('#meetingEnd').disabled = false
+  }
+}
+
+function meetingEvent(data) {
+  if (!data) return
+  if (data.kind === 'cleared') {
+    state.meeting = null
+    renderMeeting()
+    return
+  }
+  if (!data.meeting) return
+  state.meeting = data.meeting
+  renderMeeting()
+  if (data.kind === 'line' && data.line) {
+    const c = office.chars.get(data.line.sessionKey)
+    if (c) bubble(c, data.line.text.slice(0, 80), 'think', 3500)
+    const body = $('#meetingTranscript')
+    body.scrollTop = body.scrollHeight
+  }
+}
+
+$('#meetingBtn').addEventListener('click', (event) => {
+  event.stopPropagation()
+  openMeeting()
+})
+$('#meetingClose').addEventListener('click', closeMeeting)
+$('#meetingModal .backdrop').addEventListener('click', closeMeeting)
+$('#meetingStart').addEventListener('click', startMeeting)
+$('#meetingEnd').addEventListener('click', endMeeting)
+$('#meetingNew').addEventListener('click', async () => {
+  try {
+    const response = await fetch(api('/api/meeting/clear'), { method: 'POST' })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    state.meeting = null
+    $('#meetingTopic').value = ''
+    renderMeetingAgents()
+    renderMeeting()
+  } catch (err) {
+    $('#meetingStatus').textContent = String((err && err.message) || err)
+  }
+})
 
 function connect() {
   const es = new EventSource(AGW + '/events')
@@ -1118,7 +1281,7 @@ function connect() {
     const pname = (data.project || '').split(/[\\/]/).filter(Boolean).pop() || '…'
     $('#headerProjectName').textContent = pname
     $('#headerProject').title = data.project || pname
-    applySnapshot({ ...data.collector, seats: data.seats, asks: data.asks })
+    applySnapshot({ ...data.collector, seats: data.seats, asks: data.asks, meeting: data.meeting })
     loadStories()
     loadNotes()
     loadCalendar()
@@ -1152,6 +1315,9 @@ function connect() {
     state.calendarEvents = d.events || []
     renderWallCalendar()
     if ($('#calendarModal').classList.contains('open')) renderCalendar()
+  })
+  es.addEventListener('meeting', (e) => {
+    meetingEvent(JSON.parse(e.data))
   })
   es.onerror = () => {
     state.connected = false

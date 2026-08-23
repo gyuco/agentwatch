@@ -31,6 +31,9 @@ const MAIN_DESK = 'maindesk'
 const SDK_PERMISSION = process.env.AGENTWATCH_PERMISSION || 'bypassPermissions'
 const STALE_MS = 3 * 60 * 1000
 const ASK_TTL_MS = 5 * 60 * 1000
+const MEETING_TOPIC_MAX = 2000
+const MEETING_TRANSCRIPT_MAX = 80
+const MEETING_ROUNDS_MAX = 3
 
 function appendEvent(root, event) {
   const file = queueFile(root)
@@ -335,7 +338,7 @@ async function repoUrl(project) {
   }
 }
 
-export function startServer({ collector, project, catalog, onRescan, onStop, onGetHooks, defaultPort = 4579 }) {
+export function startServer({ collector, project, catalog, onRescan, onStop, onGetHooks, queryAgent = null, defaultPort = 4579 }) {
   const primary = {
     id: 'project',
     name: basename(project) || project,
@@ -344,6 +347,7 @@ export function startServer({ collector, project, catalog, onRescan, onStop, onG
     catalog,
     seats: new Map(),
     pendingAsks: new Map(),
+    meeting: null,
     clients: new Set(),
     rescan: onRescan || (() => catalog),
     getHooks: onGetHooks || (() => []),
@@ -353,6 +357,7 @@ export function startServer({ collector, project, catalog, onRescan, onStop, onG
     mode: 'single',
     primary,
     onStop,
+    queryAgent,
     defaultPort
   })
 }
@@ -389,7 +394,7 @@ export function startHubServer({ runnerPath = null, askRunnerPath = null, hooksE
   })
 }
 
-function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, defaultPort = 4579, pickDirectory = null }) {
+function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = null, hooksEnabled = true, onStop = null, queryAgent = null, defaultPort = 4579, pickDirectory = null }) {
   const contexts = new Map()
   const usageTicks = new Map()
   let port = defaultPort
@@ -581,6 +586,14 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
   }
 
   function stopContext(ctx) {
+    if (ctx.meeting && ctx.meeting.status === 'running') {
+      ctx.meeting.cancelled = true
+      ctx.meeting.status = 'cancelled'
+    }
+    for (const seat of ctx.seats.values()) {
+      if (!seat.q) continue
+      try { seat.q.close() } catch {}
+    }
     try {
       if (ctx.watcher) ctx.watcher.close()
     } catch {}
@@ -608,6 +621,7 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       catalog: scanCatalog(root),
       seats: new Map(),
       pendingAsks: new Map(),
+      meeting: null,
       clients: new Set(),
       watcher: null,
       rescan: () => {
@@ -687,7 +701,8 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
         history: s.history,
         contextUsage: s.contextUsage || null
       })),
-      asks: [...ctx.pendingAsks.values()].filter((a) => a.answer == null)
+      asks: [...ctx.pendingAsks.values()].filter((a) => a.answer == null),
+      meeting: meetingView(ctx.meeting)
     }
   }
 
@@ -695,9 +710,9 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
     broadcastTo(ctx, 'chat', { sessionKey: key, kind, ...extra })
   }
 
-  async function runSeat(ctx, seat, message) {
+  async function runSeat(ctx, seat, message, runOptions = {}) {
     try {
-      const { query } = await import('@anthropic-ai/claude-agent-sdk')
+      const query = queryAgent || (await import('@anthropic-ai/claude-agent-sdk')).query
       const options = {
         cwd: ctx.project,
         permissionMode: SDK_PERMISSION,
@@ -706,7 +721,8 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
           AGENTWATCH_SDK: '1',
           AGENTWATCH_SDK_KEY: seat.key,
           AGENTWATCH_SDK_TYPE: seat.agentType
-        }
+        },
+        ...runOptions
       }
       if (SDK_PERMISSION === 'bypassPermissions') options.allowDangerouslySkipPermissions = true
       if (seat.sessionId) options.resume = seat.sessionId
@@ -742,6 +758,108 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
       seat.busy = false
       seat.q = null
       seatChat(ctx, seat.key, 'idle')
+    }
+  }
+
+  function meetingView(meeting) {
+    if (!meeting) return null
+    return {
+      id: meeting.id,
+      topic: meeting.topic,
+      participants: meeting.participants,
+      rounds: meeting.rounds,
+      round: meeting.round,
+      status: meeting.status,
+      startedAt: meeting.startedAt,
+      endedAt: meeting.endedAt,
+      currentSpeaker: meeting.currentSpeaker,
+      transcript: meeting.transcript,
+      error: meeting.error || null
+    }
+  }
+
+  function publishMeeting(ctx, kind, extra = {}) {
+    broadcastTo(ctx, 'meeting', { kind, meeting: meetingView(ctx.meeting), ...extra })
+  }
+
+  function meetingPrompt(meeting, participant, round) {
+    const prior = meeting.transcript
+      .map((line) => `${line.agentName}: ${line.text}`)
+      .join('\n\n')
+      .slice(-12000)
+    return [
+      `You are ${participant.name}, participating in a structured meeting with other software-development agents.`,
+      `Meeting topic:\n${meeting.topic}`,
+      `This is round ${round} of ${meeting.rounds}.`,
+      prior ? `Conversation so far:\n${prior}` : 'You are the first speaker.',
+      'Contribute directly to the discussion. Address relevant points made by the other participants, identify concrete decisions or concerns, and stay concise.',
+      'This is a discussion only: do not call tools, edit files, run commands, or start subagents. Return only what you would say in the meeting.'
+    ].join('\n\n')
+  }
+
+  function releaseMeetingSeats(ctx, meeting) {
+    for (const participant of meeting.participants) {
+      const seat = ctx.seats.get(participant.sessionKey)
+      if (!seat || !seat.meetingOwned) continue
+      if (seat.q) {
+        try { seat.q.close() } catch {}
+      }
+      ctx.seats.delete(seat.key)
+      seatChat(ctx, seat.key, 'freed')
+    }
+  }
+
+  async function runMeeting(ctx, meeting) {
+    try {
+      for (let round = 1; round <= meeting.rounds && !meeting.cancelled; round++) {
+        meeting.round = round
+        for (const participant of meeting.participants) {
+          if (meeting.cancelled) break
+          const seat = ctx.seats.get(participant.sessionKey)
+          if (!seat) throw new Error(`desk unavailable for ${participant.name}`)
+          meeting.currentSpeaker = participant.id
+          publishMeeting(ctx, 'speaker')
+          const start = seat.history.length
+          seat.busy = true
+          seatChat(ctx, seat.key, 'running')
+          await runSeat(ctx, seat, meetingPrompt(meeting, participant, round), {
+            agent: participant.id,
+            tools: []
+          })
+          if (meeting.cancelled) break
+          const answer = seat.history
+            .slice(start)
+            .filter((item) => item.role === 'assistant' && item.text)
+            .map((item) => item.text.trim())
+            .filter(Boolean)
+            .join('\n\n')
+          const fallback = seat.history.slice(start).find((item) => item.role === 'error')
+          const line = {
+            id: randomUUID(),
+            agentId: participant.id,
+            agentName: participant.name,
+            sessionKey: participant.sessionKey,
+            round,
+            text: answer || (fallback ? `Error: ${fallback.text}` : 'No response.'),
+            at: Date.now(),
+            error: !answer
+          }
+          meeting.transcript.push(line)
+          if (meeting.transcript.length > MEETING_TRANSCRIPT_MAX) meeting.transcript.shift()
+          publishMeeting(ctx, 'line', { line })
+        }
+      }
+      if (!meeting.cancelled) meeting.status = 'completed'
+    } catch (err) {
+      if (!meeting.cancelled) {
+        meeting.status = 'failed'
+        meeting.error = String((err && err.message) || err)
+      }
+    } finally {
+      meeting.currentSpeaker = null
+      meeting.endedAt = Date.now()
+      releaseMeetingSeats(ctx, meeting)
+      publishMeeting(ctx, meeting.status)
     }
   }
 
@@ -935,6 +1053,101 @@ function createApp({ mode, primary = null, runnerPath = null, askRunnerPath = nu
         if (hooksEnabled && runnerPath) uninstallHooks(ctx.project, [runnerPath, askRunnerPath].filter(Boolean))
         stopContext(ctx)
       }
+      return
+    }
+
+    if (rest === '/api/meeting/start' && req.method === 'POST') {
+      readJson(req)
+        .then((body) => {
+          if (ctx.meeting && ctx.meeting.status === 'running') {
+            json(res, 409, { error: 'a meeting is already running' })
+            return
+          }
+          const topic = String(body.topic || '').trim().slice(0, MEETING_TOPIC_MAX)
+          const requested = [...new Set((Array.isArray(body.participants) ? body.participants : []).map(String))]
+          const configured = new Map(ctx.catalog.agents.map((agent) => [agent.id, agent]))
+          const agents = requested.map((id) => configured.get(id)).filter(Boolean).slice(0, SDK_DESKS.length)
+          if (!topic) {
+            json(res, 400, { error: 'meeting topic required' })
+            return
+          }
+          if (agents.length < 2 || agents.length !== requested.length) {
+            json(res, 400, { error: 'select at least two configured agents' })
+            return
+          }
+          const taken = new Set([...ctx.seats.values()].map((seat) => seat.desk))
+          const desks = SDK_DESKS.filter((desk) => !taken.has(desk))
+          if (desks.length < agents.length) {
+            json(res, 409, { error: `not enough free desks: ${desks.length} available` })
+            return
+          }
+          const participants = agents.map((agent, index) => {
+            const key = 'meeting-' + randomUUID().slice(0, 8)
+            const desk = desks[index]
+            const seat = {
+              key,
+              agentType: agent.id,
+              desk,
+              sessionId: null,
+              history: [],
+              busy: false,
+              q: null,
+              meetingOwned: true
+            }
+            ctx.seats.set(key, seat)
+            seatChat(ctx, key, 'seated', { agentType: agent.id, desk })
+            return { id: agent.id, name: agent.name || agent.id, sessionKey: key, desk }
+          })
+          const meeting = {
+            id: 'meeting-' + randomUUID().slice(0, 8),
+            topic,
+            participants,
+            rounds: Math.min(MEETING_ROUNDS_MAX, Math.max(1, Math.round(Number(body.rounds) || 2))),
+            round: 0,
+            status: 'running',
+            startedAt: Date.now(),
+            endedAt: null,
+            currentSpeaker: null,
+            transcript: [],
+            cancelled: false,
+            error: null
+          }
+          ctx.meeting = meeting
+          publishMeeting(ctx, 'started')
+          json(res, 200, { ok: true, meeting: meetingView(meeting) })
+          runMeeting(ctx, meeting)
+        })
+        .catch(() => json(res, 400, { error: 'invalid json' }))
+      return
+    }
+
+    if (rest === '/api/meeting/end' && req.method === 'POST') {
+      const meeting = ctx.meeting
+      if (!meeting || meeting.status !== 'running') {
+        json(res, 409, { error: 'no meeting is running' })
+        return
+      }
+      meeting.cancelled = true
+      meeting.status = 'cancelled'
+      meeting.endedAt = Date.now()
+      const speaker = meeting.participants.find((item) => item.id === meeting.currentSpeaker)
+      const seat = speaker && ctx.seats.get(speaker.sessionKey)
+      if (seat && seat.q) {
+        try { seat.q.close() } catch {}
+      }
+      publishMeeting(ctx, 'cancelled')
+      json(res, 200, { ok: true, meeting: meetingView(meeting) })
+      return
+    }
+
+    if (rest === '/api/meeting/clear' && req.method === 'POST') {
+      if (ctx.meeting && ctx.meeting.status === 'running') {
+        json(res, 409, { error: 'cannot clear a running meeting' })
+        return
+      }
+      ctx.meeting = null
+      publishMeeting(ctx, 'cleared')
+      json(res, 200, { ok: true })
       return
     }
 
