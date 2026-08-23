@@ -2398,19 +2398,27 @@ if (coolerEl) {
 
 const plantEl = $('#plant')
 if (plantEl) {
-  const CHATS = ['🌵 hi!', '🌵 wiggle wiggle!', '🌵 photosynthesizing…', '🌵 water me!', '🌵 doot doot!', '🌵 thorns up!', '🌵 growth spurt!']
-  let dancing = false
-  plantEl.addEventListener('click', () => {
-    if (dancing) return
-    dancing = true
-    plantEl.classList.remove('served')
+  const CHATS = ['🌱 ahhh, refreshing!', '💧 hydration complete!', '🌿 leaf me another!', '🌸 bloom service!', '✨ photosynthesis boost!', '🌱 growing strong!']
+  let watering = false
+  const waterPlant = () => {
+    if (watering) return
+    watering = true
+    plantEl.classList.remove('served', 'bloomed')
     plantEl.querySelector('.shot').textContent = CHATS[Math.floor(Math.random() * CHATS.length)]
-    plantEl.classList.add('boogie')
+    plantEl.classList.add('watering')
+    plantEl.setAttribute('aria-busy', 'true')
     setTimeout(() => {
-      plantEl.classList.remove('boogie')
-      plantEl.classList.add('served')
-    }, 1000)
-    setTimeout(() => { dancing = false }, 2400)
+      plantEl.classList.remove('watering')
+      plantEl.classList.add('served', 'bloomed')
+      plantEl.removeAttribute('aria-busy')
+    }, 1900)
+    setTimeout(() => { watering = false }, 3000)
+  }
+  plantEl.addEventListener('click', waterPlant)
+  plantEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    waterPlant()
   })
 }
 
