@@ -2180,7 +2180,9 @@
     border-bottom-color: #0b2021;
   }
   body[data-period="evening"]:not(.map) > header button,
-  body[data-period="night"]:not(.map) > header button { background: #244648; border-color: #091d1e; }
+  body[data-period="night"]:not(.map) > header button { background: #244648; border-color: #091d1e; color: #fffaf0; }
+  body[data-period="evening"]:not(.map) > header button:hover,
+  body[data-period="night"]:not(.map) > header button:hover { background: #2e5658; color: #fffaf0; }
   @media (max-width: 700px) {
     body:not(.map) > header { gap: 7px; padding: 7px 9px; }
     body:not(.map) .header-project { max-width: 150px; padding: 3px 7px; }
