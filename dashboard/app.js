@@ -600,6 +600,7 @@ function officeReact(ev) {
   }
   if (ev.event === 'SessionStart') {
     $('#doneAlert').classList.remove('show')
+    $('#office').classList.remove('lights-off')
     const deskSeat = [...state.seats.values()].find((s) => s.desk === 'maindesk')
     if (deskSeat) freeSeat(deskSeat.sessionKey)
     const c = ensureChar(rec)
@@ -1998,7 +1999,12 @@ scheduleRing()
 function confirmDone() {
   $('#doneAlert').classList.remove('show')
   const main = office.chars.get('main')
-  if (main && main.slot) walkOut(main)
+  if (main && main.slot) {
+    walkOut(main)
+    setTimeout(() => $('#office').classList.add('lights-off'), 1900)
+  } else {
+    $('#office').classList.add('lights-off')
+  }
 }
 $('#doneConfirm').addEventListener('click', confirmDone)
 $('#doneClose').addEventListener('click', confirmDone)

@@ -1412,6 +1412,22 @@
   body[data-period="evening"] #office::after { background: radial-gradient(120% 90% at 50% 55%, rgba(255,180,110,.10), rgba(20,16,50,.4) 72%); }
   body[data-period="night"] #office::after { background: radial-gradient(120% 90% at 50% 55%, rgba(255,200,120,.16), rgba(8,10,35,.58) 72%); }
 
+  /* ---------- lights off: office goes dim after everyone clocks out ---------- */
+  #office::before {
+    content: ""; position: absolute; inset: 0; z-index: 400; pointer-events: none; opacity: 0;
+    background: radial-gradient(120% 90% at 50% 45%, rgba(30,26,54,.35), rgba(6,6,18,.86) 75%);
+  }
+  #office.lights-off::before { animation: lightsOffFlicker 1.6s ease forwards; }
+  @keyframes lightsOffFlicker {
+    0% { opacity: 0; }
+    14% { opacity: .75; }
+    24% { opacity: .06; }
+    36% { opacity: .88; }
+    48% { opacity: .12; }
+    64% { opacity: .82; }
+    100% { opacity: .82; }
+  }
+
   /* ===== map: building hall with office doors ===== */
   body.map {
     overflow: hidden;
