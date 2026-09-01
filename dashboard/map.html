@@ -83,6 +83,13 @@
         <button id="pickPath" type="button" title="Choose project directory" aria-label="Choose project directory">…</button>
       </div>
     </div>
+    <div class="nm-field">
+      <label for="initPrompt">init prompt <span class="nm-detail">paste this into Claude to bootstrap the project</span></label>
+      <div class="nm-path-row">
+        <textarea id="initPrompt" readonly spellcheck="false" rows="6"></textarea>
+        <button id="copyInitPrompt" type="button" title="Copy to clipboard" aria-label="Copy to clipboard">copy</button>
+      </div>
+    </div>
     <div id="workflowSetup" hidden>
       <p class="nm-warning" id="workflowNotice"></p>
       <div class="nm-field">
@@ -103,7 +110,7 @@
       <div class="nm-field"><label for="workflowConfig">workflow configuration</label><textarea id="workflowConfig" spellcheck="false"></textarea></div>
       <button id="overwriteWorkflow" type="button">overwrite existing config with selected workflow</button>
     </div>
-    <p class="nm-hint" id="newHint">creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically</p>
+    <p class="nm-hint" id="newHint"></p>
     <button id="newOk">create office</button>
   </div>
 </div>

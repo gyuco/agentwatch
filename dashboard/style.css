@@ -1980,6 +1980,14 @@
   #pickPath:disabled { opacity: .62; cursor: wait; transform: none; }
   #pickPath.loading { animation: pulse 1s ease-in-out infinite; }
   .nm-hint { font-size: 11.5px; color: #607776; line-height: 1.45; }
+  #initPrompt { min-height: 120px; background: #f7f3e8; }
+  #copyInitPrompt {
+    width: 46px; min-height: 42px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #f3c969; color: #182b2b; border-color: #182b2b;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 900; text-transform: uppercase;
+  }
+  #copyInitPrompt:hover { background: #ffdfa0; }
   #workflowSetup { display: flex; flex-direction: column; gap: 11px; }
   #workflowSetup[hidden] { display: none; }
   .catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }

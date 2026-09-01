@@ -142,8 +142,45 @@ async function removeOffice(id, el) {
   load()
 }
 
+const INIT_PROMPT = `You are initializing a new software project. Follow this process step by step, asking questions and waiting for my confirmation before moving to the next step. Do not skip ahead.
+
+STEP 1 — Check for existing documentation
+- Check if a file named prd.md (or PRD.md) exists in this project.
+- If it exists, read it and summarize your understanding of the project back to me for confirmation.
+- If it does not exist, tell me so and proceed to Step 2 to gather the information needed to build one.
+
+STEP 2 — Product clarification (ask one question at a time, confirm each answer)
+Ask me questions until the project is clear, covering at least:
+- What problem does this project solve, and who is it for?
+- What are the core features / user stories for a first version?
+- What is explicitly out of scope?
+- Are there existing systems, APIs, or constraints it must integrate with?
+- What does success look like (acceptance criteria)?
+Summarize the answers into a draft PRD and ask me to confirm before continuing.
+
+STEP 3 — Technical clarification (ask one question at a time, confirm each answer)
+Once the product side is confirmed, ask about:
+- Preferred language(s) and framework(s), or should you recommend one?
+- Architecture style (monolith, microservices, serverless, etc.)?
+- Database / storage requirements?
+- Deployment target (cloud provider, on-prem, local)?
+- Testing and CI/CD expectations?
+Summarize the technical decisions and ask me to confirm before continuing.
+
+STEP 4 — Agents, skills, and MCP setup
+Propose the following as a starting structure, and ask me to confirm or adjust before creating anything:
+- Agents (workflow): analyst, architect, scrum-master, coder, reviewer, dev-ops
+- Suggest relevant skills and MCP servers based on the confirmed tech stack (ask before adding any)
+- Suggest an integrated kanban board with three initial statuses: draft, in progress, done
+- Explain that status changes (draft → in progress → done) should be communicated to the scrum-master agent, so it can keep the workflow in sync
+
+For every proposal in this step, ask for my explicit confirmation before creating any agent, skill, MCP configuration, or kanban structure.
+
+Do not create any files or run any commands until I have confirmed each step.`
+
 function openModal() {
   $('#newModal').classList.add('open')
+  $('#initPrompt').value = INIT_PROMPT
   $('#ofName').focus()
 }
 
@@ -158,7 +195,7 @@ function resetWorkflowStep() {
   $('#workflowSetup').hidden = true
   $('#workflowConfig').value = ''
   $('#newOk').textContent = 'create office'
-  $('#newHint').textContent = 'creates the folder, work-planner agent, work-items skill and task workflow — hooks are installed automatically'
+  $('#newHint').textContent = ''
   $('#overwriteWorkflow').hidden = true
 }
 
@@ -292,6 +329,17 @@ $('#newModal').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal()
 })
 $('#reload').addEventListener('click', load)
+$('#copyInitPrompt').addEventListener('click', async () => {
+  const btn = $('#copyInitPrompt')
+  try {
+    await navigator.clipboard.writeText($('#initPrompt').value)
+    const original = btn.textContent
+    btn.textContent = 'copied!'
+    setTimeout(() => { btn.textContent = original }, 1500)
+  } catch {
+    alert('could not copy to clipboard')
+  }
+})
 $('#ofPath').addEventListener('input', () => {
   if (workflowInspection) resetWorkflowStep()
 })
